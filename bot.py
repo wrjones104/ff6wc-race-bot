@@ -4,7 +4,7 @@ import time
 import random
 import string
 from discord.utils import get
-
+import datetime
 
 from dotenv import load_dotenv
 
@@ -14,9 +14,17 @@ load_dotenv()
 client = discord.Client()
 
 
+def add_racerooms(user, room_id, room_type, spoiler_room, ts):
+    f = open("db/races.txt", "a")
+    writemsg = str([user, room_id, room_type, spoiler_room, ts])+"\n"
+    f.write(writemsg)
+    f.close()
+
+
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
+
 
 @client.event
 async def on_message(message):
@@ -29,9 +37,9 @@ async def on_message(message):
         return
 
     # Make a list of all text following the first string in the command
-    args = message.content.split("-")[1:]
-    jargs = message.content.split(' ')[1:]
-    print(' '.join(args))
+    if message.content.startswith("!"):
+        args = message.content.split("-")[1:]
+        jargs = message.content.split(' ')[1:]
 
     # Test message just to see bot response
     if message.content.startswith("$hello"):
@@ -40,8 +48,7 @@ async def on_message(message):
     # This command is all about channel creation
     if message.content.startswith("!startrace"):
 
-        # This next part just pulls the category name for channel creation. In the real server, the name would be
-        # "racing"
+        # This next part just pulls the category name for channel creation.
         cat = get(guild.categories, name="racing")
 
         # This stores the name of the channel, which can be different based on any arguments given by the user
@@ -53,6 +60,9 @@ async def on_message(message):
 
         if 'async' in ''.join(args):
             c_name += '-async'
+            room_type = "Async"
+        else:
+            room_type = "Sync"
 
         # This makes the channel private
         race_room_overwrites = {
@@ -67,22 +77,26 @@ async def on_message(message):
         }
 
         # This creates the channel, pulling in the channel name (c_name), category (cat) and overwrites (overwrites)
-        await guild.create_text_channel(c_name, category=cat, overwrites=race_room_overwrites)
-        await guild.create_text_channel('-'.join([c_name, "spoilers"]), category=cat, overwrites=spoiler_room_overwrites)
+        race_channel = await guild.create_text_channel(c_name, category=cat, overwrites=race_room_overwrites)
+        spoiler_channel = await guild.create_text_channel('-'.join([c_name, "spoilers"]), category=cat,
+                                                          overwrites=spoiler_room_overwrites)
+
+        add_racerooms(str(message.author.id), str(race_channel.id), room_type, str(spoiler_channel.id),
+                      str(datetime.datetime.now().strftime("%b %d %Y %H:%M:%S")))
+
 
         # This stores the new channel for the bot to message in after creation
-        new_channel = get(guild.channels, name=c_name)
+        # new_channel = get(guild.channels, name=c_name)
+
+        # This sends a message in the new channel after a 2-second delay
+        # I'd rather change this to a loop to check if the channel exists - I'm just using the timer now to keep from
+        # the message firing before the channel is created
+        r_create_msg = ''.join(["Welcome to your shiny new race room, ", str(message.author.name), "!"])
+        await race_channel.send(r_create_msg)
 
         # This sends the confirmation and join message to the requestor's channel
         create_msg = ' '.join(["Your race room has been created. Type `!join", c_name + "`", "to join the channel!"])
         await message.channel.send(create_msg)
-
-        # This sends a message in the new channel after a 2 second delay
-        # I'd rather change this to a loop to check if the channel exists - I'm just using the timer now to keep from
-        # the message firing before the channel is created
-        time.sleep(2)
-        r_create_msg = ''.join(["Welcome to your shiny new race room, ", str(message.author.name), "!"])
-        await new_channel.send(r_create_msg)
 
     # This command adds a user to an existing race room
     if message.content.startswith("!join"):
@@ -98,23 +112,31 @@ async def on_message(message):
         done_msg = ''.join([message.author.name, " has finished the race with a time of ", done_time, "!"])
         this_channel = ''.join([message.channel.name, "-spoilers"])
         spoiler_channel = get(guild.channels, name=this_channel)
-        print("channel name:", this_channel)
         await spoiler_channel.set_permissions(message.author, read_messages=True, send_messages=True)
         spoil_msg = await spoiler_channel.send(done_msg)
         await spoil_msg.pin()
 
     # This message closes the race and spoiler rooms - definitely needs built out more
     if message.content.startswith("!finishasync"):
-        race_channel = get(guild.channels, name=message.channel.name)
-        spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
-        await message.channel.send("This room and its spoiler room will be closed in 1 minute!")
-        time.sleep(60)
-        await race_channel.delete()
-        await spoiler_channel.delete()
+        cat = get(guild.categories, name="racing")
+        if message.channel.category == cat:
+            race_channel = get(guild.channels, name=message.channel.name)
+            spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
+            await message.channel.send("This room and its spoiler room will be closed in 1 minute!")
+            time.sleep(60)
+            await race_channel.delete()
+            await spoiler_channel.delete()
+        else:
+            await message.channel.send("This is not a race room!")
 
-
-
-
+    if message.content.startswith("!getrooms"):
+        if message.author.id == 197757429948219392:
+            with open("db/races.txt") as f:
+                m_msg = f.read()
+                f.close()
+                await message.channel.send(m_msg)
+        else:
+            await message.channel.send("Wait a second... you're not Jones!")
 
 
 client.run(os.getenv('DISCORD_TOKEN'))
