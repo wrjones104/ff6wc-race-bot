@@ -54,7 +54,7 @@ async def startrace(guild, message, args) -> dict:
     params = args['startrace']
     if 'name' in params.keys():
         try:
-            name = params['name'][0]
+            name = ('-').join(params['name'])
             c_name = parse_roomname(name)
         except Exception as e:
             emessage = str(e)

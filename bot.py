@@ -84,17 +84,16 @@ async def on_message(message):
     # gives
     #   {'startrace': {'name': ('TestRoom1',), 'argument2': ('Something',)}}
 
-    if message.content.startswith("!"):
-        commands_values = parse_command(message.content)
-        ## Uncomment below for debugging
-        #print(commands_values)
+    if not message.content.startswith("!"):
+        return
+
+    # Beyond this point, all messages start with !
+    commands_values = parse_command(message.content)
+    ## Uncomment below for debugging
+    #print(commands_values)
 
     if 'help' in commands_values.keys():
         await message.channel.send(help)
-
-    # Test message just to see bot response
-    if message.content.startswith("$hello"):
-        await message.channel.send("Hello to you!")
 
     # Starts a race, creating a race channel and a spoiler channel for it
     if 'startrace' in commands_values.keys():
@@ -110,15 +109,14 @@ async def on_message(message):
     if message.content.startswith("!done"):
         await done(guild, message, commands_values)
 
-
     # This message closes the race and spoiler rooms - definitely needs built out more
     if message.content.startswith("!finishasync"):
         cat = get(guild.categories, name="racing")
         if message.channel.category == cat:
             race_channel = get(guild.channels, name=message.channel.name)
             spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
-            await message.channel.send("This room and its spoiler room will be closed in 1 minute!")
-            time.sleep(60)
+            await message.channel.send("This room and its spoiler room will be closed in 1 second!")
+            time.sleep(1)
 
             await race_channel.delete()
             await spoiler_channel.delete()

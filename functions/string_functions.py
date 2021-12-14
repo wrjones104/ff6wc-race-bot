@@ -100,6 +100,10 @@ def parse_roomname(name=None) -> str:
     if not 0 < len(name) < 30:
         message = "Room name must be between 1 and 29 characters, inclusive. Found length of %s" % len(name)
         raise Exception(message)
-    return name.strip().lower()
+    name = name.strip().lower()
+    for c in "!\"#$%&'()*+,./:;<=>?@[\]^_`{|}~ ":
+        name = name.replace(c, '-')
+    while '--' in name:
+        name = name.replace('--', '-')
 
-
+    return name
