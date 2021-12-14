@@ -21,19 +21,19 @@ class TestFunctions(unittest.TestCase):
         # ------------------
         name = 37
         with self.assertRaises(Exception):
-            assert parse_roomname(name) == "roomname1"
+            assert parse_roomname(name)
 
         name = ''
         with self.assertRaises(Exception):
-            assert parse_roomname(name) == "roomname1"
+            assert parse_roomname(name)
 
         name = 'Z' * 30
         with self.assertRaises(Exception):
-            assert parse_roomname(name) == "roomname1"
+            assert parse_roomname(name)
 
         name = 'Z' * 7377
         with self.assertRaises(Exception):
-            assert parse_roomname(name) == "roomname1"
+            assert parse_roomname(name)
 
     def testParseCommand(self):
         """
