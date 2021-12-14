@@ -118,7 +118,7 @@ async def on_message(message):
             race_channel = get(guild.channels, name=message.channel.name)
             spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
             await message.channel.send("This room and its spoiler room will be closed in 1 minute!")
-            #time.sleep(60)
+            time.sleep(60)
 
             await race_channel.delete()
             await spoiler_channel.delete()
