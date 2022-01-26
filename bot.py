@@ -1,11 +1,21 @@
+VERSION = "2022-01-26"
+
 import datetime
 import os
 import random
 import string
+from termios import VERASE
 import time
+
+import functions.constants
 from commands.startrace import startrace
 from commands.joinrace import joinrace
 from commands.done import done
+from commands.getseed import getseed
+from commands.gethistory import gethistory
+from commands.getraces import getraces
+from commands.finishrace import finishrace
+from commands.killrace import killrace
 from functions.string_functions import parse_command
 
 # Check for missing imports
@@ -24,7 +34,7 @@ except ModuleNotFoundError:
 try:
     from dotenv import load_dotenv
 except ModuleNotFoundError:
-    missing_imports.append("dotenv")
+    missing_imports.append("python-dotenv")
 
 if len(missing_imports) != 0:
     emessage = "Please install the following Python 3 packages before running the bot:\n"
@@ -38,11 +48,9 @@ if len(missing_imports) != 0:
 races = {}
 load_dotenv()
 client = discord.Client()
-JONES = 197757429948219392
-WHODAT = 763412923409760296
 
 help ="""
-FF6WC Race Bot - Test version 2021-12-14-0230
+FF6WC RaceRoom Bot - Test version %s
 
 The bot currently supports the following commands:
     !help
@@ -53,27 +61,46 @@ The bot currently supports the following commands:
             -name <racename>: Start a race with the name <racename>. Must be between 1 and 29 characters
             -async: Starts an async race. Races are sync by default
 
+    !finishrace
+        Removes a raceroom and its spoiler room after a brief delay
+
     !join <racename>
         Joins a race called <racename>, if it exists
 
     !done 11:22:33
         When used in a race room, marks a race as completed in the given time (in this case 11 hours, 22 minutes, and 33 seconds)
 
-    !getrooms
+    !getseed
+        Asks for a specfic seed for a given race, specified by the room the command is run in. This seed will be DMed to the user and a timer will start once it has been DMed. When the racer types !done, the total time between the DM and done command will be the runner's time
+
+""" % (VERSION)
+
+adminhelp = """\n
+Admin-only commands:
+    !getraces
         A command for administrators which shows the current races
+
+    !gethistory
+        Get the history of races, stored in db\\races.txt
+
+    !killrace
+        Immediately closes a race room and its spoiler room. This does not check to see if all racers are finished
 
 """
 
 @client.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
+    gmessage = f'FF6WC Racebot Version {VERSION}: We have logged in to as {client.user}'
+    print(gmessage)
 
 
 @client.event
 async def on_message(message):
-    # "guild" is the server name. The following variable is just storing the name of the server that the message
-    # originated from
-    guild = message.author.guild
+    # guild is the server name. The following variable is just storing the name of the server that the message
+    # originated from. Check the type of channel to prevent throwing an error when the user is DMed
+    if isinstance(message.channel, discord.channel.TextChannel):
+        guild = message.channel.guild
+
 
     # This command just keeps the bot from issuing itself commands
     if message.author == client.user:
@@ -89,15 +116,24 @@ async def on_message(message):
 
     # Beyond this point, all messages start with !
     commands_values = parse_command(message.content)
+
     ## Uncomment below for debugging
     #print(commands_values)
 
     if 'help' in commands_values.keys():
         await message.channel.send(help)
+        if message.author.id in functions.constants.ADMINS:
+            await message.channel.send(adminhelp)
 
     # Starts a race, creating a race channel and a spoiler channel for it
     if 'startrace' in commands_values.keys():
         name_type = await startrace(guild, message, commands_values)
+
+        # If raceroom creation failed, don't add it to the list of rooms, but print a message
+        if not name_type:
+            emessage = f"Failed to create raceroom on {message.guild} in {message.channel}\n\t{message.author} - {message.content}"
+            print(emessage)
+            return
         for roomname in name_type.keys():
             races[roomname] = name_type[roomname]
 
@@ -105,43 +141,28 @@ async def on_message(message):
     if 'join' in commands_values.keys():
         await joinrace(guild, message, commands_values)
 
+    # This command gets the seed specified for the given room
+    if 'getseed' in commands_values.keys():
+        await getseed(guild, message, commands_values, races)
+
     # This command adds a user to the spoiler channel when they're done
     if message.content.startswith("!done"):
         await done(guild, message, commands_values)
 
     # This message closes the race and spoiler rooms - definitely needs built out more
-    if message.content.startswith("!finishasync"):
-        cat = get(guild.categories, name="racing")
-        if message.channel.category == cat:
-            race_channel = get(guild.channels, name=message.channel.name)
-            spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
-            await message.channel.send("This room and its spoiler room will be closed in 1 second!")
-            time.sleep(1)
+    if message.content.startswith("!finishrace"):
+        await finishrace(guild, message, commands_values, races)
 
-            await race_channel.delete()
-            await spoiler_channel.delete()
-            del races[str(race_channel)]
-        else:
-            await message.channel.send("This is not a race room!")
+    # Admin only: This message instantly closes the race and spoiler rooms
+    if message.content.startswith("!killrace"):
+        await killrace(guild, message, commands_values, races)
 
-    if message.content.startswith("!getrooms"):
-        if message.author.id not in (JONES, WHODAT):
-            await message.channel.send("Wait a second... you're not a Presenter fan!")
-        else:
-            rmessage = ""
-            if len(races.keys()) == 0:
-                rmessage = "There are no active races"
-            else:
-                rmessage = f"Currently there are {len(races.keys())} active races:\n"
-                for race in races:
-                    rmessage += f"    {race} - {races[race]}\n"
-            await message.channel.send(rmessage)
-            races_file_path = "db/races.txt"
-            try:
-                with open(races_file_path, 'r') as f:
-                    m_msg = f.read()
-                    f.close()
-                    await message.channel.send(m_msg)
-            except Exception as e:
-                print ("Unable to read from %s" % races_file_path)
+    # Admin only: Get current race rooms
+    if message.content.startswith("!getraces"):
+        await getraces(message, races)
+
+    # Admin only: Get historical races
+    if message.content.startswith("!gethistory"):
+        await gethistory(message)
+
 client.run(os.getenv('DISCORD_TOKEN'))
