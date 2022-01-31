@@ -1,5 +1,9 @@
 import random
 import string
+import datetime
+
+from better_profanity import profanity
+from functions.constants import RANDOM_ROOM_NAME_LENGTH
 
 dashes = ('-', '\u002d', '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2015', '\u2e3a', '\u2e3b', '\ufe58', '\ufe63', '\uff0d')
 
@@ -89,9 +93,17 @@ def parse_roomname(name=None) -> str:
         The name of the room to be created
     """
 
-    # Generate a random name of length k
+    # Generate a random name of length functions.constants.RANDOM_ROOM_NAME_LENGTH. Check them for profanity and reroll if it exists
     if name is None:
-        return '-'.join(["ff6wc", ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))]).strip()
+        counter = 0
+        room_name = '-'.join(["ff6wc", ''.join(random.choices(string.ascii_lowercase + string.digits, k=RANDOM_ROOM_NAME_LENGTH))]).strip()
+        while profanity.contains_profanity(room_name):
+            room_name = '-'.join(["ff6wc", ''.join(random.choices(string.ascii_lowercase + string.digits, k=RANDOM_ROOM_NAME_LENGTH))]).strip()
+            counter += 1
+            if counter > 100:
+                emessage = "Attempted to create 100 random room names and they all contain profanity. Ending attempts."
+                raise Exception(emessage)
+        return room_name
 
     # Try to use the name the user provided
     if not isinstance(name, str):
@@ -107,3 +119,56 @@ def parse_roomname(name=None) -> str:
         name = name.replace('--', '-')
 
     return name
+
+def parse_done_time(input:str) -> datetime.timedelta:
+    """
+    Parses the input string representing the done time for a race. We expect something like this:
+        01:23:45.6789
+    which represents 1h 23m 45.6789s
+
+    Unfortunately we may get any sort of crazy input.
+    """
+    if not isinstance(input, str):
+        emessage = f"Expected time input of type str. Found type {type(input)}"
+        raise Exception(emessage)
+
+    if not 0 < input.count(":") < 3:
+        emessage = f"Expected time in the format of hh:mm:ss.xxxx or mm:ss.xxxx. Found {input}"
+        raise Exception(emessage)
+
+    ##Split the time by colons
+    hours = 0
+    minutes = 0
+    seconds = 0
+    time_split = input.split(':')
+    seconds = time_split[-1]
+    minutes = time_split[-2]
+    if len(time_split) == 3:
+        hours = time_split[0]
+
+    try:
+        hours = int(hours)
+        assert 24 > hours >= 0
+
+        minutes = int(minutes)
+        assert 60 > minutes >= 0
+
+        seconds = float(seconds)
+        assert 60 > seconds >= 0
+
+    except Exception as e:
+        emessage = f"Time can't be 24+ hours or have more than 59 minutes or seconds. Found {input}"
+        raise Exception(emessage)
+    donetime = datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
+    return donetime
+
+def timedelta_to_str(input:datetime.timedelta) -> str:
+    """Converts a datetime.timedelta value to a string formatted as hh:mm:ss.xx"""
+    if not isinstance(input, datetime.timedelta):
+        emessage = f"input must be datetime.timedelta. Found type {type(input)}"
+        raise Exception(emessage)
+    hours, remainder = divmod(input.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    seconds = int(seconds)
+    fraction = int(input.microseconds / 10000)
+    return f"{hours:02}:{minutes:02}:{seconds:02}.{fraction}"

@@ -3,15 +3,17 @@ import discord
 import random
 import string
 import time
+import datetime
 
 import functions.constants
 from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
+from functions.lograce import lograce
 
 
-async def finishrace(guild, message, args, races):
+async def closerace(guild, message, args, races):
     """
     User command to close out a race room and its spoiler room
 
@@ -44,6 +46,11 @@ async def finishrace(guild, message, args, races):
 
         await race_channel.delete()
         await spoiler_channel.delete()
-        del races[str(race_channel)]
+        if race_channel.name in races.keys():
+            races[race_channel.name].closed_date = datetime.datetime.now()
+            races[race_channel.name].comments = f"Closed by {message.author}"
+            lograce(races[race_channel.name])
+
+            del races[race_channel.name]
     else:
         await message.channel.send("This is not a race room!")

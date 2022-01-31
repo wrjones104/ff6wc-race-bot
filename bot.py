@@ -1,6 +1,7 @@
-VERSION = "2022-01-26"
+VERSION = "2022-01-31"
 
 import datetime
+from http import server
 import os
 import random
 import string
@@ -8,14 +9,16 @@ from termios import VERASE
 import time
 
 import functions.constants
-from commands.startrace import startrace
+from commands.openrace import openrace
 from commands.joinrace import joinrace
 from commands.done import done
 from commands.getseed import getseed
 from commands.gethistory import gethistory
 from commands.getraces import getraces
-from commands.finishrace import finishrace
+from commands.closerace import closerace
 from commands.killrace import killrace
+from commands.testcommand import testcommand
+from commands.raceinfo import raceinfo
 from functions.string_functions import parse_command
 
 # Check for missing imports
@@ -28,6 +31,7 @@ except ModuleNotFoundError:
 try:
     import discord
     from discord.utils import get
+    from discord.ext import commands
 except ModuleNotFoundError:
     missing_imports.append("discord")
 
@@ -56,12 +60,13 @@ The bot currently supports the following commands:
     !help
         Prints this help text
 
-    !startrace
-        Starts a race. If no options are provided, the race will be synchronous (players must race at the same time) and a random name will be generated. A raceroom and spoiler room will be generated. The following options exist:
-            -name <racename>: Start a race with the name <racename>. Must be between 1 and 29 characters
-            -async: Starts an async race. Races are sync by default
+    !openrace
+        Opens a race. If no options are provided, the race will be synchronous (players must race at the same time) and a random name will be generated. A raceroom and spoiler room will be generated. The following options exist:
+            -name <racename>: Open a race with the name <racename>. Must be between 1 and 29 characters
+            -async: Opens an async race. Races are sync by default
+            -hidden : Opens a sync race with a hidden seed which will only be rolled and DMed to the players right before start
 
-    !finishrace
+    !closerace
         Removes a raceroom and its spoiler room after a brief delay
 
     !join <racename>
@@ -81,18 +86,20 @@ Admin-only commands:
         A command for administrators which shows the current races
 
     !gethistory
-        Get the history of races, stored in db\\races.txt
+        Get the history of races, stored in db/races.txt
 
     !killrace
         Immediately closes a race room and its spoiler room. This does not check to see if all racers are finished
 
 """
 
+intents = discord.Intents.default()
+intents.members = True
+
 @client.event
 async def on_ready():
     gmessage = f'FF6WC Racebot Version {VERSION}: We have logged in to as {client.user}'
     print(gmessage)
-
 
 @client.event
 async def on_message(message):
@@ -102,14 +109,16 @@ async def on_message(message):
         guild = message.channel.guild
 
 
+
+
     # This command just keeps the bot from issuing itself commands
     if message.author == client.user:
         return
 
     # A dictionary with commands as keys and arguments to those commands as values. For example:
-    #   !startrace -name TestRoom1 -argument2 Something
+    #   !openrace -name TestRoom1 -argument2 Something
     # gives
-    #   {'startrace': {'name': ('TestRoom1',), 'argument2': ('Something',)}}
+    #   {'openrace': {'name': ('TestRoom1',), 'argument2': ('Something',)}}
 
     if not message.content.startswith("!"):
         return
@@ -117,25 +126,21 @@ async def on_message(message):
     # Beyond this point, all messages start with !
     commands_values = parse_command(message.content)
 
-    ## Uncomment below for debugging
-    #print(commands_values)
-
     if 'help' in commands_values.keys():
         await message.channel.send(help)
         if message.author.id in functions.constants.ADMINS:
             await message.channel.send(adminhelp)
 
-    # Starts a race, creating a race channel and a spoiler channel for it
-    if 'startrace' in commands_values.keys():
-        name_type = await startrace(guild, message, commands_values)
+    # Opens a race, creating a race channel and a spoiler channel for it
+    if 'openrace' in commands_values.keys():
+        new_race = await openrace(guild, message, commands_values)
 
         # If raceroom creation failed, don't add it to the list of rooms, but print a message
-        if not name_type:
+        if not new_race:
             emessage = f"Failed to create raceroom on {message.guild} in {message.channel}\n\t{message.author} - {message.content}"
             print(emessage)
             return
-        for roomname in name_type.keys():
-            races[roomname] = name_type[roomname]
+        races[new_race.channel.name] = new_race
 
     # This command adds a user to an existing race room
     if 'join' in commands_values.keys():
@@ -145,13 +150,17 @@ async def on_message(message):
     if 'getseed' in commands_values.keys():
         await getseed(guild, message, commands_values, races)
 
+    # This command gets information about the current race
+    if message.content.startswith("!raceinfo"):
+        await raceinfo(guild, message, commands_values, races)
+
     # This command adds a user to the spoiler channel when they're done
     if message.content.startswith("!done"):
         await done(guild, message, commands_values)
 
     # This message closes the race and spoiler rooms - definitely needs built out more
-    if message.content.startswith("!finishrace"):
-        await finishrace(guild, message, commands_values, races)
+    if message.content.startswith("!closerace"):
+        await closerace(guild, message, commands_values, races)
 
     # Admin only: This message instantly closes the race and spoiler rooms
     if message.content.startswith("!killrace"):
@@ -165,4 +174,9 @@ async def on_message(message):
     if message.content.startswith("!gethistory"):
         await gethistory(message)
 
+    # Admin only: Test stuff
+    if message.content.startswith("!test"):
+        await testcommand(message)
+
 client.run(os.getenv('DISCORD_TOKEN'))
+

@@ -6,7 +6,7 @@ import string
 from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
-from functions.string_functions import parse_roomname
+from functions.string_functions import parse_roomname, parse_done_time, timedelta_to_str
 
 
 async def done(guild, message, args) -> dict:
@@ -54,7 +54,7 @@ async def done(guild, message, args) -> dict:
         return None
 
     # There are many ways the user can screw this up, so we'll have to show this message a lot
-    bad_time_message = "Use !done <time> to submit your time. Example: \n    !done 00:34:18\n"
+    bad_time_message = "Use !done <time> to submit your time. Example: \n    !done 00:34:18.76\n"
 
     ## First, if there's some sort of weird error on our part or they didn't submit a string
     if len(args['done']['time']) != 1 or not isinstance(args['done']['time'][0], str):
@@ -63,39 +63,17 @@ async def done(guild, message, args) -> dict:
 
     done_time = args['done']['time'][0]
 
-    ## Second, if they put in some weird number of colons
-    if not 0 < done_time.count(":") < 3:
-        await channel.send(bad_time_message)
-        return None
-
-    ## Third, split the time by colons, cutting off the decimal points and checking for sanity
-    hours = 0
-    minutes = 0
-    seconds = 0
-    time_split = done_time.split(':')
-    seconds = time_split[-1].split('.')[0]
-    minutes = time_split[-2]
-    if len(time_split) == 3:
-        hours = time_split[0]
-
+    # This function returns a datetime.timedelta and passes it to our string parser
     try:
-        hours = int(hours)
-        assert 10 > hours >= 0
-
-        minutes = int(minutes)
-        assert 60 > minutes >= 0
-
-        seconds = int(seconds)
-        assert 60 > seconds >= 0
+        dt = parse_done_time(done_time)
+        done_str = timedelta_to_str(dt)
     except Exception as e:
         await channel.send(bad_time_message)
         return None
 
     # Finally we should have a reasonable time
-    done_msg = f"{message.author.name} has finished the race with a time of {hours}:{minutes}:{seconds}!"
+    done_msg = f"{message.author.name} has finished the race with a time of {done_str}!"
     spoiler_channel = get(guild.channels, name=message.channel.name + "-spoilers")
     await spoiler_channel.set_permissions(message.author, read_messages=True, send_messages=True)
     spoil_msg = await spoiler_channel.send(done_msg)
     await spoil_msg.pin()
-
-    #this_channel = ''.join([message.channel.name, "-spoilers"])

@@ -7,11 +7,15 @@ from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
+from classes.Race import Race
+
+import functions.constants
 
 
-async def startrace(guild, message, args) -> dict:
+
+async def openrace(guild, message, args) -> dict:
     """
-    Starts a race in a given guild (server) with the name stored in args or generates a name if one isn't provided
+    Opens a race in a given guild (server) with the name stored in args or generates a name if one isn't provided
 
     Parameters
     ----------
@@ -23,7 +27,7 @@ async def startrace(guild, message, args) -> dict:
 
     args : dict
         A dictionary containing the command we've been given
-        ex: {'startrace': {'name': ('TestRoom1',)}}
+        ex: {'openrace': {'name': ('TestRoom1',)}}
 
     Returns
     -------
@@ -38,8 +42,8 @@ async def startrace(guild, message, args) -> dict:
         emessage += f"message is not a discord.message.Message - Found type {type(message)}\n"
     if not isinstance(args, dict):
         emessage += f"args is not a Python dict - Found type {type(args)}\n"
-    elif 'startrace' not in args.keys():
-        emessage += f"args did not contain a 'startrace' key\n"
+    elif 'openrace' not in args.keys():
+        emessage += f"args did not contain a 'openrace' key\n"
     if emessage != "":
         raise Exception(emessage)
 
@@ -51,7 +55,7 @@ async def startrace(guild, message, args) -> dict:
 
     # This stores the name of the channel, which can be different based on any arguments given by the user
     # args is a dictionary of options mapping to values
-    params = args['startrace']
+    params = args['openrace']
     if 'name' in params.keys():
         try:
             name = ('-').join(params['name'])
@@ -78,10 +82,13 @@ async def startrace(guild, message, args) -> dict:
     # Add sync or async to our room names
     if 'async' in params.keys():
         c_name += '-async'
-        room_type = "Async"
+        room_type = functions.constants.RACETYPE_ASYNC
+    elif 'hidden' in params.keys():
+        c_name += "-hidden_seed"
+        room_type = functions.constants.RACETYPE_HIDDENSEED
     else:
         c_name += "-sync"
-        room_type = "Sync"
+        room_type = functions.constants.RACETYPE_SYNC
 
     if profanity.contains_profanity(c_name):
         emessage = "You have attempted to create a channel with a forbidden name."
@@ -115,12 +122,19 @@ async def startrace(guild, message, args) -> dict:
     # This sends a message in the new channel after a 2-second delay
     # I'd rather change this to a loop to check if the channel exists - I'm just using the timer now to keep from
     # the message firing before the channel is created
-    r_create_msg = ''.join(["Welcome to your shiny new race room, ", str(message.author.name), "!"])
+    r_create_msg = f"Welcome to your shiny new race room, {message.author.name}!\n"
+    r_create_msg += f"You can use the following commands:`\n"
+    r_create_msg += f"    !raceinfo - See information about this race\n"
+    r_create_msg += f"    !closerace - Close this raceroom after a brief delay\n"
+    r_create_msg += f"`\n"
     await race_channel.send(r_create_msg)
 
     # This sends the confirmation and join message to the requestor's channel
     create_msg = ' '.join(["Your race room has been created. Type `!join", c_name + "`", "to join the channel!"])
     await message.channel.send(create_msg)
 
-    return {c_name: room_type}
+    race = Race(message, race_channel)
+    race.type = room_type
+
+    return race
 

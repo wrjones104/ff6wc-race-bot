@@ -24,14 +24,14 @@ async def gethistory(message):
                 f.close()
 
             chunks = m_msg.split('\n')
-            chunk = ""
+            chunk = "`\n"
             counter = 0
             while counter < len(chunks):
-                while counter < len(chunks) and len(chunk + chunks[counter]) < functions.constants.MAX_MSG_LEN - 1:
+                while counter < len(chunks) and len(chunk + chunks[counter]) < functions.constants.MAX_MSG_LEN - 4:
                     chunk += chunks[counter] + "\n"
                     counter += 1
-                await message.channel.send(chunk)
-                chunk = ""
+                await message.channel.send(chunk + '`')
+                chunk = "`\n"
 
         except Exception as e:
             print ("Unable to read from %s - %s" % (functions.constants.RACE_FILE, str(e)))

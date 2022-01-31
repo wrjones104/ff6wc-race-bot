@@ -4,10 +4,12 @@ import random
 import string
 import time
 
+
 from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
+from functions.lograce import lograce
 import functions.constants
 
 
@@ -28,7 +30,7 @@ async def killrace(guild, message, args, races):
         ex: {'join': {'room': ('myrace-sync',)}}
 
     races : dict
-        A dictionary containing racerooms
+        A dictionary containing races
     Returns
     -------
     Nothing
@@ -46,6 +48,15 @@ async def killrace(guild, message, args, races):
 
         await race_channel.delete()
         await spoiler_channel.delete()
-        del races[str(race_channel)]
+
+        # Remove this room from the list of races
+        if race_channel.name in races.keys():
+            races[race_channel.name].closed_date = datetime.datetime.now()
+            races[race_channel.name].comments = f"Race force killed by {message.author}"
+            lograce(races[race_channel.name])
+
+            del races[race_channel.name]
+        else:
+            print(f"{message.author} killed an untracked race - {race_channel.name}")
     else:
         await message.channel.send("This is not a race room!")
