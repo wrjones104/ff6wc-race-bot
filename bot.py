@@ -22,6 +22,7 @@ from commands.testcommand import testcommand
 from commands.raceinfo import raceinfo
 from commands.setseed import setseed
 from functions.string_functions import parse_command
+from functions.loadraces import loadraces
 
 # Check for missing imports
 missing_imports = []
@@ -106,6 +107,10 @@ Admin-only commands:
 
 intents = discord.Intents.default()
 intents.members = True
+
+# The bot has just restarted, so read in the races we know about
+#races = loadraces(functions.constants.RACE_PATH, client)
+
 
 @client.event
 async def on_ready():
