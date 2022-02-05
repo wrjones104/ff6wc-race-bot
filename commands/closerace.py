@@ -4,6 +4,7 @@ import random
 import string
 import time
 import datetime
+from pytz import timezone
 
 import functions.constants
 from better_profanity import profanity
@@ -44,10 +45,14 @@ async def closerace(guild, message, args, races):
         await message.channel.send(f"This room and its spoiler room will be closed in {functions.constants.RACE_ROOM_CLOSE_TIME} seconds!")
         time.sleep(functions.constants.RACE_ROOM_CLOSE_TIME)
 
-        await race_channel.delete()
-        await spoiler_channel.delete()
+        if race_channel:
+            await race_channel.delete()
+        if spoiler_channel:
+            await spoiler_channel.delete()
+
         if race_channel.name in races.keys():
-            races[race_channel.name].closed_date = datetime.datetime.now()
+            tz = timezone('US/Eastern')
+            races[race_channel.name].closed_date = datetime.datetime.now(tz)
             races[race_channel.name].comments = f"Closed by {message.author}"
             lograce(races[race_channel.name])
 

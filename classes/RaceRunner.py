@@ -127,7 +127,7 @@ class RaceRunner:
         output += f"Member:    {self.member}\n"
         output += f"Guild:     {self.guild}\n"
         output += f"Channel:   {self.channel}\n"
-        output += f"Race:      {self.race}\n"
+        output += f"Race:      {self.race.channel}\n"
         output += f"Start:     {self.start_date}\n"
         output += f"Finish:    {self.finish_date}\n"
         output += f"Forfeit?:  {self.forfeit}\n"

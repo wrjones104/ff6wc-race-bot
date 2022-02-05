@@ -1,4 +1,4 @@
-VERSION = "2022-01-31"
+VERSION = "2022-02-04"
 
 import datetime
 from http import server
@@ -12,6 +12,7 @@ import functions.constants
 from commands.openrace import openrace
 from commands.joinrace import joinrace
 from commands.done import done
+from commands.entrants import entrants
 from commands.getseed import getseed
 from commands.gethistory import gethistory
 from commands.getraces import getraces
@@ -19,6 +20,7 @@ from commands.closerace import closerace
 from commands.killrace import killrace
 from commands.testcommand import testcommand
 from commands.raceinfo import raceinfo
+from commands.setseed import setseed
 from functions.string_functions import parse_command
 
 # Check for missing imports
@@ -72,11 +74,20 @@ The bot currently supports the following commands:
     !join <racename>
         Joins a race called <racename>, if it exists
 
+    !entrants
+        Lists the entrants of a race
+
+    !raceinfo
+        Lists information about a race
+
     !done 11:22:33
         When used in a race room, marks a race as completed in the given time (in this case 11 hours, 22 minutes, and 33 seconds)
 
     !getseed
         Asks for a specfic seed for a given race, specified by the room the command is run in. This seed will be DMed to the user and a timer will start once it has been DMed. When the racer types !done, the total time between the DM and done command will be the runner's time
+
+    !setseed
+        Sets the seed URL for a race. Can only be called by channel or race admins
 
 """ % (VERSION)
 
@@ -126,13 +137,13 @@ async def on_message(message):
     # Beyond this point, all messages start with !
     commands_values = parse_command(message.content)
 
-    if 'help' in commands_values.keys():
+    if message.content.startswith("!help"):
         await message.channel.send(help)
         if message.author.id in functions.constants.ADMINS:
             await message.channel.send(adminhelp)
 
     # Opens a race, creating a race channel and a spoiler channel for it
-    if 'openrace' in commands_values.keys():
+    if message.content.startswith("!openrace"):
         new_race = await openrace(guild, message, commands_values)
 
         # If raceroom creation failed, don't add it to the list of rooms, but print a message
@@ -143,16 +154,20 @@ async def on_message(message):
         races[new_race.channel.name] = new_race
 
     # This command adds a user to an existing race room
-    if 'join' in commands_values.keys():
-        await joinrace(guild, message, commands_values)
+    if message.content.startswith("!join"):
+        await joinrace(guild, message, commands_values, races)
 
     # This command gets the seed specified for the given room
-    if 'getseed' in commands_values.keys():
+    if message.content.startswith("!getseed"):
         await getseed(guild, message, commands_values, races)
 
     # This command gets information about the current race
     if message.content.startswith("!raceinfo"):
         await raceinfo(guild, message, commands_values, races)
+
+    # This command gets information about the entrants for this race
+    if message.content.startswith("!entrants"):
+        await entrants(guild, message, commands_values, races)
 
     # This command adds a user to the spoiler channel when they're done
     if message.content.startswith("!done"):
@@ -174,9 +189,15 @@ async def on_message(message):
     if message.content.startswith("!gethistory"):
         await gethistory(message)
 
+    # Admin only: Set room seed
+    if message.content.startswith("!setseed"):
+        await setseed(guild, message, commands_values, races)
+
     # Admin only: Test stuff
     if message.content.startswith("!test"):
         await testcommand(message)
+
+
 
 client.run(os.getenv('DISCORD_TOKEN'))
 

@@ -113,7 +113,7 @@ async def openrace(guild, message, args) -> dict:
                                                         overwrites=spoiler_room_overwrites)
 
     add_racerooms(str(message.author.id), str(race_channel.id), room_type, str(spoiler_channel.id),
-                    str(datetime.datetime.now().strftime("%b %d %Y %H:%M:%S")))
+                    str(str(datetime.datetime.utcnow())) + " UTC")
 
 
     # This stores the new channel for the bot to message in after creation
@@ -125,12 +125,15 @@ async def openrace(guild, message, args) -> dict:
     r_create_msg = f"Welcome to your shiny new race room, {message.author.name}!\n"
     r_create_msg += f"You can use the following commands:`\n"
     r_create_msg += f"    !raceinfo - See information about this race\n"
+    r_create_msg += f"    !entrants - Shows the entrants for this race\n"
+    r_create_msg += f"    !getseed - DMs you a link to download the seed for this race\n"
+    r_create_msg += f"    !setseed - If you're a race admin, use this to set the URL for the race seed\n"
     r_create_msg += f"    !closerace - Close this raceroom after a brief delay\n"
     r_create_msg += f"`\n"
     await race_channel.send(r_create_msg)
 
     # This sends the confirmation and join message to the requestor's channel
-    create_msg = ' '.join(["Your race room has been created. Type `!join", c_name + "`", "to join the channel!"])
+    create_msg = f"Your race room has been created. To join, type: `!join {c_name}`"
     await message.channel.send(create_msg)
 
     race = Race(message, race_channel)

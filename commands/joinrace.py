@@ -7,9 +7,10 @@ from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
+from classes.RaceRunner import RaceRunner
 
 
-async def joinrace(guild, message, args):
+async def joinrace(guild, message, args, races):
     """
     Joins a race in a given guild (server) with the name stored in args
 
@@ -61,3 +62,12 @@ async def joinrace(guild, message, args):
     join_msg = f"{message.author.name} has joined the race!"
     await join_channel.set_permissions(message.author, read_messages=True, send_messages=True)
     await join_channel.send(join_msg)
+
+    race = races[join_channel.name]
+    rr = RaceRunner()
+    rr.member = message.author
+    rr.race = race
+    rr.guild = guild
+    rr.channel = channel
+    race.addRacer(rr)
+

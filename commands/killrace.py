@@ -3,6 +3,7 @@ import discord
 import random
 import string
 import time
+from pytz import timezone
 
 
 from better_profanity import profanity
@@ -46,12 +47,16 @@ async def killrace(guild, message, args, races):
         await message.channel.send("This room and its spoiler room will be closed in 1 second!")
         time.sleep(1)
 
-        await race_channel.delete()
-        await spoiler_channel.delete()
+        if race_channel:
+            await race_channel.delete()
+        if spoiler_channel:
+            await spoiler_channel.delete()
+
 
         # Remove this room from the list of races
         if race_channel.name in races.keys():
-            races[race_channel.name].closed_date = datetime.datetime.now()
+            tz = timezone('US/Eastern')
+            races[race_channel.name].closed_date = datetime.datetime.now(tz)
             races[race_channel.name].comments = f"Race force killed by {message.author}"
             lograce(races[race_channel.name])
 

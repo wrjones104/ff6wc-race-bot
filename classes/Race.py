@@ -1,7 +1,9 @@
 
+from pytz import timezone
 import discord
 import functions.constants
 import datetime
+import time
 
 
 
@@ -12,9 +14,10 @@ class Race:
         self._channel = None
         self._guild = None
         self._creator = None
-        self._admins = list(functions.constants.ADMINS)
+        self._url = None
+        self._admins = set(functions.constants.ADMINS)
         self._type = None
-        self._members = []
+        self._members = set()
         self._opened_date = None
         self._closed_date = None
         self._race_start_date = None
@@ -29,9 +32,11 @@ class Race:
             raise Exception(emessage)
 
         self.creator = in_message.author
+        self.admins.add(self.creator.id)
         self.guild = in_message.guild
         self.channel = in_channel
-        self.opened_date = datetime.datetime.now()
+        tz = timezone('US/Eastern')
+        self.opened_date = datetime.datetime.now(tz)
 
 
 
@@ -69,7 +74,22 @@ class Race:
         self._creator = input
 
     @property
-    def admins(self) -> list:
+    def url(self) -> str:
+        return self._url
+
+    @url.setter
+    def url(self, input:str) -> None:
+        if not isinstance(input, str):
+            emessage = f"input should be a str. Found type {type(input)}"
+            raise Exception(emessage)
+        if not input.upper().startswith("HTTP") or "/seed/" not in input:
+            emessage = f"input doesn't appear to be a valid seed link. Found {input}"
+            raise Exception(emessage)
+        self._url = input
+
+
+    @property
+    def admins(self) -> set:
         return self._admins
 
     @admins.setter
@@ -96,7 +116,7 @@ class Race:
             self._isHiddenSeed = False
 
     @property
-    def members(self) -> list:
+    def members(self) -> set:
         return self._members
 
     @members.setter
@@ -162,17 +182,17 @@ class Race:
 
         """
         from classes import RaceRunner
-        if not isinstance(input, RaceRunner):
+        if not isinstance(input, RaceRunner.RaceRunner):
             emessage = f"input should be an FF6WC-raceroombot-RaceRunner. Found type {type(input)}"
             raise Exception(emessage)
-        self._members.append(input)
+        self._members.add(input)
 
     def removeRacer(self, input:RaceRunner) -> None:
         """Removes a RaceRunner from this Race.
 
         """
         from classes import RaceRunner
-        if not isinstance(input, RaceRunner):
+        if not isinstance(input, RaceRunner.RaceRunner):
             emessage = f"input should be an FF6WC-raceroombot-RaceRunner. Found type {type(input)}"
             raise Exception(emessage)
         if input in self._members:
@@ -183,6 +203,10 @@ class Race:
         output += f"Guild:        {self.guild}\n"
         output += f"Channel:      {self.channel.name}\n"
         output += f"Creator:      {self.creator}\n"
+        if not self.isHiddenSeed:
+            output += f"Seed URL:     {self.url}\n"
+        else:
+            output += f"Seed URL:     Hidden\n"
         output += f"Admins:     \n"
         for admin in self.admins:
             output += f"    {str(admin)} ... {str(self.guild.get_member(admin))}\n"
@@ -192,20 +216,20 @@ class Race:
             output += "    No one has joined this race\n"
         else:
             for member in self.members:
-                output += f"    {str(member)}\n"
-        output += f"Date Opened:  {self.opened_date}\n"
+                output += f"    {str(member.member.name)}\n"
+        output += f"Date Opened:  {self.opened_date} ET\n"
         output += f"Date Started: "
         if self.race_start_date:
-            output += f"{self.race_start_date}\n"
+            output += f"{self.race_start_date} ET\n"
         else:
             output += "Not yet started\n"
 
         output += f"Date Closed:  "
         if self.closed_date:
-            output += f"{self.closed_date}\n"
+            output += f"{self.closed_date} ET\n"
         else:
             output += "Not yet closed\n"
-        output += f"Seed Hidden?: {self.isHiddenSeed}\n"
+        #output += f"Seed Hidden?: {self.isHiddenSeed}\n"
         output += f"Comments:     {self.comments}\n"
         output += "\n"
         return output

@@ -10,10 +10,9 @@ from functions.string_functions import parse_roomname
 from functions.generate_seed import generate_seed
 
 
-async def getseed(guild, message, args, races):
+async def setseed(guild, message, args, races):
     """
-    Gets the guarded async seed for this channel and DMs it to the user
-
+    Sets the guarded async seed for this channel
     Parameters
     ----------
     guild : discord.guild.Guild
@@ -47,15 +46,9 @@ async def getseed(guild, message, args, races):
     channel_name = str(channel)
 
     try:
-        assert '' in args['getseed'].keys()
+        assert '' in args['setseed'].keys()
     except:
-        emessage += "There was an error in the getseed function. Contact WhoDat42 or wrjones18"
-        await channel.send(emessage)
-        return None
-
-    # Make sure the user isn't trying to pass anything to the command
-    if len(args.keys()) != 1 or 'getseed' not in args.keys() or len(args['getseed']['']) != 0:
-        emessage += "Do not pass any commands to the getseed command"
+        emessage += "There was an error in the setseed function. Contact WhoDat42 or wrjones18"
         await channel.send(emessage)
         return None
 
@@ -65,15 +58,32 @@ async def getseed(guild, message, args, races):
         await channel.send(emessage)
         return None
 
-    flags = "-cg -oa 2.2.2.2.7.7.4.10.10 -ob 30.8.8.1.1.11.8 -sc1 random -sc2 random -sal -eu -fst -brl -slr 1 5 -lmprp 75 125 -lel -srr 3 15 -rnl -rnc -sdr 1 1 -das -dda -dns -com 98989898989898989898989898 -rec1 28 -rec2 23 -xpm 3 -mpm 5 -gpm 5 -nxppd -lsced 2 -hmced 2 -xgced 2 -ase 2 -msl 40 -sed -bbs -be -bnu -res -fer 0 -escr 100 -dgne -wnz -mmnu -cmd -esr 1 5 -ebr 68 -emprp 75 125 -nm1 random -rnl1 -rns1 -nm2 random -rnl2 -rns2 -nmmi -smc 3 -ieor 33 -ieror 33 -csb 1 32 -mca -stra -saw -sisr 20 -sprp 75 125 -sdm 4 -npi -ccsr 20 -cms -cor -crr -crvr 255 255 -ari -anca -adeh -nfps -nu -fs -fe -fvd -fr -fj -fbs -fedc -as -ond -rr"
-    seed = generate_seed(flags)
-    url = seed['url']
-    version = seed['version']
-    hash = seed['hash']
+    race = races[channel_name]
 
-    smessage = f"Here's your Worlds Collide version {version} seed:\n"
-    smessage += f"URL: {url}\n"
-    smessage += f"Hash: {hash}\n"
-    smessage += "\n"
-    author = message.author
-    await author.send(smessage)
+    # Make sure the user here is an admin
+    if not message.author.id in race.admins:
+        emessage = f"{message.author} is not an admin of the race in channel {channel_name}"
+        await channel.send(emessage)
+        return None
+
+    try:
+        race.url = args['setseed'][''][0]
+        msg = "Seed URL set"
+        await channel.send(msg)
+    except Exception as e:
+        msg = "Set a seed using the following syntax:\n"
+        msg += "!setseed <URL>\n"
+        msg += "    *ex: !setseed https://ff6wc.com/seed/E6n93pxzhYEs*\n\n"
+        await channel.send(msg)
+        return
+
+    if race.isHiddenSeed:
+        await message.delete()
+    else:
+        msg = f"The seed has been set!\nHere is the seed link for this race -- {race.url}"
+        seedmsg = await channel.send(msg)
+        await seedmsg.pin()
+
+
+
+

@@ -3,7 +3,7 @@ import os
 import requests
 
 
-def generate_seed(flags, seed_desc):
+def generate_seed(flags, seed_desc = None):
     url = "https://ff6wc.com/api/generate"
     if seed_desc:
         payload = json.dumps({
