@@ -8,7 +8,7 @@ from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
 from classes.RaceRunner import RaceRunner
-
+from functions.constants import TZ, RACETYPE_ASYNC
 
 async def joinrace(guild, message, args, races):
     """
@@ -66,8 +66,12 @@ async def joinrace(guild, message, args, races):
     race = races[join_channel.name]
     rr = RaceRunner()
     rr.member = message.author
+    rr.join_date = datetime.datetime.now(TZ)
     rr.race = race
     rr.guild = guild
     rr.channel = channel
+    if race.type == RACETYPE_ASYNC:
+        rr.ready = True
+
     race.addRacer(rr)
 

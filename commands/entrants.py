@@ -11,6 +11,7 @@ from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
 from functions.lograce import lograce
+from functions.isRace_room import isRace_room
 
 
 async def entrants(guild, message, args, races):
@@ -35,20 +36,29 @@ async def entrants(guild, message, args, races):
     -------
     Nothing
     """
-
-    # TODO: Add in gating to prevent people from closing the room while folks are running - WhoDat42 - 2022-01-26
-    cat = get(guild.categories, name="racing")
-    race_channel = get(guild.channels, name=message.channel.name)
-    if message.channel.category != cat or race_channel.name not in races.keys():
-        await message.channel.send("This is not a race room!")
+    channel = message.channel
+    if not isRace_room(channel, races):
+        msg = "This is not a race room!"
+        await channel.send(msg)
         return
-    race = races[race_channel.name]
+
+    race = races[channel.name]
 
     msg = '`'
     if len(race.members) == 0:
         msg = "This race doesn't have any entrants yet!"
     else:
-        for runner in race.members:
-            msg += runner.member.name + '\n'
+        for member in race.members.keys():
+            status = "Not Ready"
+            if race.members[member].ready:
+                status = "Ready"
+            if race.members[member].start_date:
+                status = "Running"
+            if race.members[member].finish_date:
+                status = "Finished"
+            if race.members[member].forfeit:
+                status = "FF"
+
+            msg += race.members[member].member.name + '--'+ status + '\n'
         msg += '`\n'
     await message.channel.send(msg)

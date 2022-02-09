@@ -56,7 +56,7 @@ async def killrace(guild, message, args, races):
         # Remove this room from the list of races
         if race_channel.name in races.keys():
             tz = timezone('US/Eastern')
-            races[race_channel.name].closed_date = datetime.datetime.now(tz)
+            races[race_channel.name].close()
             races[race_channel.name].comments = f"Race force killed by {message.author}"
             lograce(races[race_channel.name])
 

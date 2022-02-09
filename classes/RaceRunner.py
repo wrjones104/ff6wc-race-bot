@@ -10,8 +10,10 @@ class RaceRunner:
     def __init__(self) -> None:
         self._member = None
         self._race = None
+        self._join_date = None
         self._start_date = None
         self._finish_date = None
+        self._ready = False
         self._forfeit = False
         self._time_taken = None
         self._guild = None
@@ -43,6 +45,17 @@ class RaceRunner:
         self._race = input
 
     @property
+    def join_date(self) -> datetime.datetime:
+        return self._join_date
+
+    @join_date.setter
+    def join_date(self, input:datetime.datetime) -> None:
+        if not isinstance(input, datetime.datetime):
+            emessage = f"input must be a datetime.datetime object. Found type {type(input)}"
+            raise Exception(emessage)
+        self._join_date = input
+
+    @property
     def start_date(self) -> datetime.datetime:
         return self._start_date
 
@@ -65,6 +78,17 @@ class RaceRunner:
         self._finish_date = input
 
     @property
+    def ready(self) -> bool:
+        return self._ready
+
+    @ready.setter
+    def ready(self, input:bool) -> None:
+        if not isinstance(input, bool):
+            emessage = f"input must be a bool. Found type {type(input)}"
+            raise Exception(emessage)
+        self._ready = input
+
+    @property
     def forfeit(self) -> bool:
         return self._forfeit
 
@@ -76,29 +100,21 @@ class RaceRunner:
         self._forfeit = input
 
     @property
-    def time_taken(self) -> str:
+    def time_taken(self) -> datetime.timedelta:
         if self._start_date is None:
-            return "DNS"
+            return None
         if self._forfeit:
-            return "FF"
+            return None
         if self._finish_date is None:
-            return "Running"
-        taken = str(self.start_date - self.finish_date)
-        return taken
+            return None
+        taken = self.finish_date - self.start_date
+        self._time_taken = taken
+        return self._time_taken
 
     @time_taken.setter
-    def time_taken(self, input:datetime.timedelta) -> None:
-        if not isinstance(input, (str, datetime.timedelta)):
-            emessage = f"input must be a datetime.datetime.delta or string. Found type {type(input)}"
-            raise Exception(emessage)
-        taken = input
-        if isinstance(input, str):
-            try:
-                taken = parse_done_time(input)
-            except Exception as e:
-                emessage = f"Invalid donetime: {input}"
-                raise Exception(emessage)
-        self._time_taken = taken
+    def time_taken(self, input) -> None:
+        emessage = f"time_taken is calculated from start_date and finish_date and cannot be set."
+        raise Exception(emessage)
 
     @property
     def guild(self) -> discord.guild.Guild:
@@ -128,8 +144,10 @@ class RaceRunner:
         output += f"Guild:     {self.guild}\n"
         output += f"Channel:   {self.channel}\n"
         output += f"Race:      {self.race.channel}\n"
+        output += f"Join:      {self.join_date}\n"
         output += f"Start:     {self.start_date}\n"
         output += f"Finish:    {self.finish_date}\n"
+        output += f"Ready:     {self.ready}\n"
         output += f"Forfeit?:  {self.forfeit}\n"
         output += f"TimeTaken: {self.time_taken}\n"
         output += "\n"

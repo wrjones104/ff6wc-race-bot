@@ -124,10 +124,14 @@ async def openrace(guild, message, args) -> dict:
     # the message firing before the channel is created
     r_create_msg = f"Welcome to your shiny new race room, {message.author.name}!\n"
     r_create_msg += f"You can use the following commands:`\n"
-    r_create_msg += f"    !raceinfo - See information about this race\n"
-    r_create_msg += f"    !entrants - Shows the entrants for this race\n"
-    r_create_msg += f"    !getseed - DMs you a link to download the seed for this race\n"
-    r_create_msg += f"    !setseed - If you're a race admin, use this to set the URL for the race seed\n"
+    r_create_msg += f"    !raceinfo  - See information about this race\n"
+    r_create_msg += f"    !entrants  - Shows the entrants for this race\n"
+    r_create_msg += f"    !ready     - Mark yourself ready\n"
+    r_create_msg += f"    !unready   - Mark yourself unready\n"
+    r_create_msg += f"    !getseed   - DMs you a link to download the seed for this race\n"
+    r_create_msg += f"    !setseed   - If you're a race admin, use this to set the URL for the race seed\n"
+    r_create_msg += f"    !startrace - Start the race\n"
+    r_create_msg += f"    !done      - Mark that you are done\n"
     r_create_msg += f"    !closerace - Close this raceroom after a brief delay\n"
     r_create_msg += f"`\n"
     await race_channel.send(r_create_msg)

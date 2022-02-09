@@ -21,6 +21,9 @@ from commands.killrace import killrace
 from commands.testcommand import testcommand
 from commands.raceinfo import raceinfo
 from commands.setseed import setseed
+from commands.ready import ready
+from commands.unready import unready
+from commands.startrace import startrace
 from functions.string_functions import parse_command
 from functions.loadraces import loadraces
 
@@ -75,6 +78,12 @@ The bot currently supports the following commands:
     !join <racename>
         Joins a race called <racename>, if it exists
 
+    !startrace
+        Starts a sync or hidden race
+
+    !ready / !unready
+        Ready or unready yourself for a race
+
     !entrants
         Lists the entrants of a race
 
@@ -123,9 +132,6 @@ async def on_message(message):
     # originated from. Check the type of channel to prevent throwing an error when the user is DMed
     if isinstance(message.channel, discord.channel.TextChannel):
         guild = message.channel.guild
-
-
-
 
     # This command just keeps the bot from issuing itself commands
     if message.author == client.user:
@@ -176,11 +182,18 @@ async def on_message(message):
 
     # This command adds a user to the spoiler channel when they're done
     if message.content.startswith("!done"):
-        await done(guild, message, commands_values)
+        await done(guild, message, commands_values, races)
 
-    # This message closes the race and spoiler rooms - definitely needs built out more
-    if message.content.startswith("!closerace"):
-        await closerace(guild, message, commands_values, races)
+    # This command starts a race
+    if message.content.startswith("!startrace"):
+        await startrace(guild, message, commands_values, races)
+
+    # These commands ready or unready a player
+    if message.content.startswith("!ready"):
+        await ready(guild, message, commands_values, races)
+
+    if message.content.startswith("!unready"):
+        await unready(guild, message, commands_values, races)
 
     # Admin only: This message instantly closes the race and spoiler rooms
     if message.content.startswith("!killrace"):

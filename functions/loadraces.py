@@ -1,6 +1,7 @@
 
 import os
 import sys
+import discord
 
 def loadraces(path: str, client:discord.client.Client) -> dict:
     """

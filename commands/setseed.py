@@ -8,6 +8,7 @@ from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
 from functions.generate_seed import generate_seed
+from functions.isRace_room import isRace_room
 
 
 async def setseed(guild, message, args, races):
@@ -43,11 +44,21 @@ async def setseed(guild, message, args, races):
 
     # The channel the message is in. This is a discord channel object
     channel = message.channel
+    if not isRace_room(channel, races):
+        msg = "This is not a race room!"
+        await channel.send(msg)
+        return
     channel_name = str(channel)
+
+    if len(args['setseed'].keys()) > 2:
+        emessage = "Are you trying to pass flags to this command? Pass it a seed URL like this:\n\t*!setseed https://ff6wc.com/seed/E6n93pxzhYEs*\n\n"
+        await channel.send(emessage)
+        return None
 
     try:
         assert '' in args['setseed'].keys()
     except:
+        print(args)
         emessage += "There was an error in the setseed function. Contact WhoDat42 or wrjones18"
         await channel.send(emessage)
         return None
@@ -71,7 +82,7 @@ async def setseed(guild, message, args, races):
         msg = "Seed URL set"
         await channel.send(msg)
     except Exception as e:
-        msg = "Set a seed using the following syntax:\n"
+        msg = "Set a seed (not flags) using the following syntax:\n"
         msg += "!setseed <URL>\n"
         msg += "    *ex: !setseed https://ff6wc.com/seed/E6n93pxzhYEs*\n\n"
         await channel.send(msg)
