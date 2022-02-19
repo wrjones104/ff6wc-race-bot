@@ -5,6 +5,9 @@ import string
 
 from better_profanity import profanity
 from discord.utils import get
+
+from classes.Log import Log
+import functions.constants
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
 from functions.generate_seed import generate_seed
@@ -32,6 +35,8 @@ async def setseed(guild, message, args, races):
     -------
     Nothing
     """
+    logger = Log()
+
     emessage = ""
     if not isinstance(guild, discord.guild.Guild):
         emessage += f"guild is not a discord.guild.Guild - Found type {type(guild)}\n"
@@ -50,18 +55,43 @@ async def setseed(guild, message, args, races):
         return
     channel_name = str(channel)
 
-    if len(args['setseed'].keys()) > 2:
-        emessage = "Are you trying to pass flags to this command? Pass it a seed URL like this:\n\t*!setseed https://ff6wc.com/seed/E6n93pxzhYEs*\n\n"
-        await channel.send(emessage)
-        return None
+    race = races[channel_name]
 
-    try:
-        assert '' in args['setseed'].keys()
-    except:
-        print(args)
-        emessage += "There was an error in the setseed function. Contact WhoDat42 or wrjones18"
-        await channel.send(emessage)
-        return None
+    isFlagset = False
+    # Use this to parse a flagset
+    if ('' in args['setseed'] and "https" not in args['setseed']['']) or '' not in args['setseed']:
+        flagstr = ""
+        for key in args['setseed'].keys():
+            flagstr += f"-{key} " + (' ').join(args['setseed'][key]) + " "
+        while "  " in flagstr:
+            flagstr = flagstr.replace("  ", " ")
+
+        try:
+            seed = generate_seed(flagstr)
+            assert seed["url"]
+            race.flags = flagstr
+            race.url = seed["url"]
+            race.version = seed["version"]
+            race.hash = seed["hash"]
+
+        except Exception as e:
+            emessage = f"Unable to generate seed from the given flags:\n{flagstr}\n"
+            await channel.send(emessage)
+            logger.show(emessage, functions.constants.LOG_CRITICAL)
+            logger.show(str(e), functions.constants.LOG_CRITICAL)
+            return
+
+        isFlagset = True
+
+    if not isFlagset:
+        try:
+            assert '' in args['setseed'].keys()
+        except:
+            log_msg = f"\n{guild} -- There was an error in the setseed function:\n{args}\n"
+            emessage += "There was an error in the setseed function. Contact WhoDat42 or wrjones18"
+            await channel.send(emessage)
+            logger.show(emessage, functions.constants.LOG_CRITICAL)
+            return None
 
     # Check to see if this is a racing channel
     if channel_name not in races.keys():
@@ -69,7 +99,7 @@ async def setseed(guild, message, args, races):
         await channel.send(emessage)
         return None
 
-    race = races[channel_name]
+    #race = races[channel_name]
 
     # Make sure the user here is an admin
     if not message.author.id in race.admins:
@@ -77,21 +107,28 @@ async def setseed(guild, message, args, races):
         await channel.send(emessage)
         return None
 
-    try:
-        race.url = args['setseed'][''][0]
-        msg = "Seed URL set"
-        await channel.send(msg)
-    except Exception as e:
-        msg = "Set a seed (not flags) using the following syntax:\n"
-        msg += "!setseed <URL>\n"
-        msg += "    *ex: !setseed https://ff6wc.com/seed/E6n93pxzhYEs*\n\n"
-        await channel.send(msg)
-        return
+    if not isFlagset:
+        try:
+            race.url = args['setseed'][''][0]
+            msg = "Seed URL set"
+            await channel.send(msg)
+        except Exception as e:
+            msg = "Set a seed (not flags) using the following syntax:\n"
+            msg += "!setseed <URL> or !setseed <flagset>\n"
+            msg += "    *ex: !setseed https://ff6wc.com/seed/E6n93pxzhYEs*\n\n"
+            await channel.send(msg)
+            return
 
-    if race.isHiddenSeed:
+    if race.isHidden:
         await message.delete()
+        msg = f"The seed has been set!\n"
+        await channel.send(msg)
     else:
-        msg = f"The seed has been set!\nHere is the seed link for this race -- {race.url}"
+        msg = f"The seed has been set!\n"
+        if not isFlagset:
+            msg += f"Here is the seed link for this race -- {race.url}"
+        else:
+            msg += f"Here are the flags:\n{race.flags}\n"
         seedmsg = await channel.send(msg)
         await seedmsg.pin()
 

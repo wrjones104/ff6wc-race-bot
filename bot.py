@@ -1,4 +1,4 @@
-VERSION = "2022-02-04"
+VERSION = "2022-02-18"
 
 import datetime
 from http import server
@@ -9,23 +9,31 @@ from termios import VERASE
 import time
 
 import functions.constants
+from functions.constants import LOG_CRITICAL, LOG_REGULAR
 from commands.openrace import openrace
 from commands.joinrace import joinrace
 from commands.done import done
 from commands.entrants import entrants
+from commands.forfeit import forfeit
 from commands.getseed import getseed
 from commands.gethistory import gethistory
 from commands.getraces import getraces
 from commands.closerace import closerace
 from commands.killrace import killrace
-from commands.testcommand import testcommand
+from commands.quit import quit
 from commands.raceinfo import raceinfo
 from commands.setseed import setseed
+from commands.startrace import startrace
+from commands.testcommand import testcommand
 from commands.ready import ready
 from commands.unready import unready
-from commands.startrace import startrace
+
+from functions.create_race_channels import create_race_channels
 from functions.string_functions import parse_command
 from functions.loadraces import loadraces
+from classes.Log import Log
+
+logger = Log()
 
 # Check for missing imports
 missing_imports = []
@@ -51,13 +59,15 @@ if len(missing_imports) != 0:
     for mi in missing_imports:
         emessage += "    %s\n" % mi
     emessage += "\n"
-    print(emessage)
+    logger.show(emessage, LOG_CRITICAL)
     exit(1)
 
 
 races = {}
 load_dotenv()
-client = discord.Client()
+intents = discord.Intents.all()
+intents.members = True
+client = discord.Client(intents = intents)
 
 help ="""
 FF6WC RaceRoom Bot - Test version %s
@@ -70,7 +80,9 @@ The bot currently supports the following commands:
         Opens a race. If no options are provided, the race will be synchronous (players must race at the same time) and a random name will be generated. A raceroom and spoiler room will be generated. The following options exist:
             -name <racename>: Open a race with the name <racename>. Must be between 1 and 29 characters
             -async: Opens an async race. Races are sync by default
-            -hidden : Opens a sync race with a hidden seed which will only be rolled and DMed to the players right before start
+            -hidden : Opens a race with a hidden seed which will only be rolled and DMed to the players right before start
+
+            You may combine -async and -hidden to make a hidden async race
 
     !closerace
         Removes a raceroom and its spoiler room after a brief delay
@@ -79,7 +91,7 @@ The bot currently supports the following commands:
         Joins a race called <racename>, if it exists
 
     !startrace
-        Starts a sync or hidden race
+        Starts a race
 
     !ready / !unready
         Ready or unready yourself for a race
@@ -90,8 +102,9 @@ The bot currently supports the following commands:
     !raceinfo
         Lists information about a race
 
-    !done 11:22:33
+    !done / !done 11:22:33
         When used in a race room, marks a race as completed in the given time (in this case 11 hours, 22 minutes, and 33 seconds)
+        For hidden seeds or asyncs, just use !done
 
     !getseed
         Asks for a specfic seed for a given race, specified by the room the command is run in. This seed will be DMed to the user and a timer will start once it has been DMed. When the racer types !done, the total time between the DM and done command will be the runner's time
@@ -114,20 +127,39 @@ Admin-only commands:
 
 """
 
-intents = discord.Intents.default()
-intents.members = True
-
-# The bot has just restarted, so read in the races we know about
-#races = loadraces(functions.constants.RACE_PATH, client)
-
+races = {}
 
 @client.event
 async def on_ready():
-    gmessage = f'FF6WC Racebot Version {VERSION}: We have logged in to as {client.user}'
-    print(gmessage)
+    global races
+
+    gmessage = f'FF6WC Racebot Version {VERSION}: We have logged in {client.user}'
+    logger.show(gmessage, LOG_CRITICAL)
+
+    # The bot has just restarted, so read in the races we know about
+    races = loadraces(functions.constants.RACE_PATH, client)
+
+    gmessage = f"Found {len(races.keys())} open races\n"
+    for r in races.keys():
+        gmessage += f"    {races[r].guild} - {r}\n"
+    logger.show(gmessage, LOG_CRITICAL)
+    for key in races.keys():
+        guild = races[key].guild
+        creator = races[key].creator
+        name = races[key].channel_name
+        if not name:
+            name = key
+        await create_race_channels(guild, creator, name, logger)
+        if not races[key].channel:
+            races[key].channel = discord.utils.get(client.get_all_channels(), name=races[key].channel_name)
+
+        for i in races[key].members.keys():
+            if not races[key].members[i].channel:
+                races[key].members[i].channel = races[key].channel
 
 @client.event
 async def on_message(message):
+    global races
     # guild is the server name. The following variable is just storing the name of the server that the message
     # originated from. Check the type of channel to prevent throwing an error when the user is DMed
     if isinstance(message.channel, discord.channel.TextChannel):
@@ -159,8 +191,8 @@ async def on_message(message):
 
         # If raceroom creation failed, don't add it to the list of rooms, but print a message
         if not new_race:
-            emessage = f"Failed to create raceroom on {message.guild} in {message.channel}\n\t{message.author} - {message.content}"
-            print(emessage)
+            emessage = f"{message.guild} -- Failed to create raceroom in {message.channel}\n\t{message.author} - {message.content}"
+            logger.show(emessage, LOG_CRITICAL)
             return
         races[new_race.channel.name] = new_race
 
@@ -194,6 +226,14 @@ async def on_message(message):
 
     if message.content.startswith("!unready"):
         await unready(guild, message, commands_values, races)
+
+    # Quit the race
+    if message.content.startswith("!quit"):
+        await quit(guild, message, commands_values, races)
+
+    # Forfeit
+    if message.content.startswith("!ff") or message.content.startswith("!forfeit"):
+        await forfeit(guild, message, commands_values, races)
 
     # Admin only: This message instantly closes the race and spoiler rooms
     if message.content.startswith("!killrace"):

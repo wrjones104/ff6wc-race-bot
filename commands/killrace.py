@@ -8,10 +8,12 @@ from pytz import timezone
 
 from better_profanity import profanity
 from discord.utils import get
+
+from classes.Log import Log
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
-from functions.lograce import lograce
 import functions.constants
+
 
 
 async def killrace(guild, message, args, races):
@@ -36,6 +38,7 @@ async def killrace(guild, message, args, races):
     -------
     Nothing
     """
+    logger = Log()
     if message.content.startswith("!getraces"):
         if message.author.id not in functions.constants.ADMINS:
             return
@@ -56,12 +59,14 @@ async def killrace(guild, message, args, races):
         # Remove this room from the list of races
         if race_channel.name in races.keys():
             tz = timezone('US/Eastern')
-            races[race_channel.name].close()
             races[race_channel.name].comments = f"Race force killed by {message.author}"
-            lograce(races[race_channel.name])
+            races[race_channel.name].close()
+
+
 
             del races[race_channel.name]
         else:
-            print(f"{message.author} killed an untracked race - {race_channel.name}")
+            msg = f"{message.guild} -- {message.author} killed an untracked race - {race_channel.name}"
+            logger.show(msg)
     else:
         await message.channel.send("This is not a race room!")

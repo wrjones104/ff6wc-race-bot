@@ -8,9 +8,12 @@ from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
 from functions.generate_seed import generate_seed
+from classes.Log import Log
+from classes.Race import Race
+import functions.constants
 
 
-async def getseed(guild, message, args, races):
+async def getseed(guild, message, args, races) -> False:
     """
     Gets the guarded async seed for this channel and DMs it to the user
 
@@ -32,6 +35,7 @@ async def getseed(guild, message, args, races):
     -------
     Nothing
     """
+    logger = Log()
     emessage = ""
     if not isinstance(guild, discord.guild.Guild):
         emessage += f"guild is not a discord.guild.Guild - Found type {type(guild)}\n"
@@ -51,6 +55,7 @@ async def getseed(guild, message, args, races):
     except:
         emessage += "There was an error in the getseed function. Contact WhoDat42 or wrjones18"
         await channel.send(emessage)
+        logger.show(emessage, functions.constants.LOG_CRITICAL)
         return None
 
     # Make sure the user isn't trying to pass anything to the command
@@ -65,15 +70,86 @@ async def getseed(guild, message, args, races):
         await channel.send(emessage)
         return None
 
-    flags = "-cg -oa 2.2.2.2.7.7.4.10.10 -ob 30.8.8.1.1.11.8 -sc1 random -sc2 random -sal -eu -fst -brl -slr 1 5 -lmprp 75 125 -lel -srr 3 15 -rnl -rnc -sdr 1 1 -das -dda -dns -com 98989898989898989898989898 -rec1 28 -rec2 23 -xpm 3 -mpm 5 -gpm 5 -nxppd -lsced 2 -hmced 2 -xgced 2 -ase 2 -msl 40 -sed -bbs -be -bnu -res -fer 0 -escr 100 -dgne -wnz -mmnu -cmd -esr 1 5 -ebr 68 -emprp 75 125 -nm1 random -rnl1 -rns1 -nm2 random -rnl2 -rns2 -nmmi -smc 3 -ieor 33 -ieror 33 -csb 1 32 -mca -stra -saw -sisr 20 -sprp 75 125 -sdm 4 -npi -ccsr 20 -cms -cor -crr -crvr 255 255 -ari -anca -adeh -nfps -nu -fs -fe -fvd -fr -fj -fbs -fedc -as -ond -rr"
-    seed = generate_seed(flags)
-    url = seed['url']
-    version = seed['version']
-    hash = seed['hash']
+    race = races[channel_name]
+    if race.isHidden and not race.race_start_date:
+        smessage = "You are not allowed to request the seed until the race starts"
+        await channel.send(smessage)
+        return
+
+    if message.author.name in race.members.keys():
+        if race.members[message.author.name].hasSeed:
+            emessage = f"@{message.author.name} You should already have the seed! If not please contact a race admin immediately"
+            await channel.send(emessage)
+            return
+    else:
+        emessage = f"@{message.author.name} You aren't in this race"
+        await channel.send(emessage)
+        return
+
+    if not race.url:
+        emessage = "The seed has not yet been set"
+        await channel.send(emessage)
+        return
+
+    url = race.url
+    version = race.version
+    hash = race.hash
+
+    for member_name in race.members.keys():
+        if race.members[member_name].member.id == message.author.id:
+            race.members[member_name].hasSeed = True
+
+    if race.isHidden:
+        race.members[message.author.name].start_date = datetime.datetime.now(functions.constants.TZ)
+        msg = f"User {message.author.name} delivered seed at {race.members[message.author.name].start_date}"
+        logger.show(msg)
+        race.comments += msg + "\n"
 
     smessage = f"Here's your Worlds Collide version {version} seed:\n"
     smessage += f"URL: {url}\n"
     smessage += f"Hash: {hash}\n"
     smessage += "\n"
     author = message.author
+    race.log()
     await author.send(smessage)
+
+
+async def getseed_hidden(user, race) -> str:
+    """
+    Sends the hidden seed to user. This function should only be called by startrace
+
+    Parameters
+    ----------
+    guild : discord.guild.Guild
+        The server we're on
+
+    user : discord.member.Member
+        The person to send the seed to
+
+    race : Race
+        An FF6WC-raceroom Race
+    Returns
+    -------
+    Race URL
+    """
+    logger = Log()
+    emessage = ""
+    if not isinstance(user, discord.member.Member):
+        emessage += f"user should be a discord.member.Member - Found type {type(user)}\n"
+    if not isinstance(race, Race):
+        emessage += f"race is not a Race - Found type {type(race)}\n"
+    if emessage != "":
+        raise Exception(emessage)
+
+    url = race.url
+    version = race.version
+    hash = race.hash
+
+    smessage = f"Here's your Worlds Collide version {version} seed:\n"
+    smessage += f"URL: {url}\n"
+    smessage += f"Hash: {hash}\n"
+    smessage += "\n"
+
+    await user.send(smessage)
+
+    return url

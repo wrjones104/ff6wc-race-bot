@@ -26,6 +26,9 @@ async def joinrace(guild, message, args, races):
         A dictionary containing the command we've been given
         ex: {'join': {'room': ('myrace-sync',)}}
 
+    races : dict
+        A dictionary containing racerooms
+
     Returns
     -------
     Nothing
@@ -59,11 +62,14 @@ async def joinrace(guild, message, args, races):
         await channel.send(emessage)
         return
 
-    join_msg = f"{message.author.name} has joined the race!"
-    await join_channel.set_permissions(message.author, read_messages=True, send_messages=True)
-    await join_channel.send(join_msg)
 
     race = races[join_channel.name]
+
+    if message.author.name in race.members.keys():
+        emessage = "You've already joined this race!"
+        await channel.send(emessage)
+        return
+
     rr = RaceRunner()
     rr.member = message.author
     rr.join_date = datetime.datetime.now(TZ)
@@ -74,4 +80,9 @@ async def joinrace(guild, message, args, races):
         rr.ready = True
 
     race.addRacer(rr)
+
+
+    join_msg = f"{message.author.name} has joined the race!"
+    await join_channel.set_permissions(message.author, read_messages=True, send_messages=True)
+    await join_channel.send(join_msg)
 

@@ -80,15 +80,16 @@ async def openrace(guild, message, args) -> dict:
                 return None
 
     # Add sync or async to our room names
+    isHidden = False
     if 'async' in params.keys():
         c_name += '-async'
         room_type = functions.constants.RACETYPE_ASYNC
-    elif 'hidden' in params.keys():
-        c_name += "-hidden_seed"
-        room_type = functions.constants.RACETYPE_HIDDENSEED
     else:
         c_name += "-sync"
         room_type = functions.constants.RACETYPE_SYNC
+    if 'hidden' in params.keys():
+        c_name += "-hidden"
+        isHidden = True
 
     if profanity.contains_profanity(c_name):
         emessage = "You have attempted to create a channel with a forbidden name."
@@ -129,11 +130,22 @@ async def openrace(guild, message, args) -> dict:
     r_create_msg += f"    !ready     - Mark yourself ready\n"
     r_create_msg += f"    !unready   - Mark yourself unready\n"
     r_create_msg += f"    !getseed   - DMs you a link to download the seed for this race\n"
-    r_create_msg += f"    !setseed   - If you're a race admin, use this to set the URL for the race seed\n"
+    r_create_msg += f"    !setseed   - If you're a race admin, use this to set the URL or flags for the race seed\n"
     r_create_msg += f"    !startrace - Start the race\n"
     r_create_msg += f"    !done      - Mark that you are done\n"
     r_create_msg += f"    !closerace - Close this raceroom after a brief delay\n"
     r_create_msg += f"`\n"
+    if isHidden and room_type == functions.constants.RACETYPE_SYNC:
+        r_create_msg += f"\nNOTE: This is a hidden seed race. You will be DMed a link to download the seed when "
+        r_create_msg += f"the race starts. The timer starts as soon as you receive the DM, so be quick when "
+        r_create_msg += f"downloading the seed!\n"
+
+    elif isHidden and room_type == functions.constants.RACETYPE_ASYNC:
+        r_create_msg += f"\nNOTE: This is a hidden seed race. Once the race admin has started the race with !startrace, "
+        r_create_msg += f"you will be able to request a DM with the seed by typing `!getseed`\n"
+        r_create_msg += f"The timer starts as soon as you receive the DM, so be quick when "
+        r_create_msg += f"downloading the seed!\n"
+
     await race_channel.send(r_create_msg)
 
     # This sends the confirmation and join message to the requestor's channel
@@ -142,6 +154,6 @@ async def openrace(guild, message, args) -> dict:
 
     race = Race(message, race_channel)
     race.type = room_type
-
+    race.isHidden = isHidden
     return race
 

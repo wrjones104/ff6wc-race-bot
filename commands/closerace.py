@@ -10,7 +10,6 @@ from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
-from functions.lograce import lograce
 from functions.constants import TZ
 
 
@@ -32,6 +31,10 @@ async def closerace(guild, message, args, races, msg = None):
 
     races : dict
         A dictionary containing racerooms
+
+    msg : str (optional)
+        A message to write out to the log
+
     Returns
     -------
     Nothing
@@ -53,9 +56,8 @@ async def closerace(guild, message, args, races, msg = None):
         if not msg:
             msg = f"Closed by {message.author}"
         if race_channel.name in races.keys():
-            races[race_channel.name].close()
             races[race_channel.name].comments = msg
-            lograce(races[race_channel.name])
+            races[race_channel.name].close()
 
             del races[race_channel.name]
     else:

@@ -1,18 +1,30 @@
 import os
 import shutil
+import traceback
+import sys
 
-#from tkinter import E
-from classes.Race import Race
-from functions.constants import TZ, RACE_PATH
+from classes.Log import Log
+from functions.constants import RACE_PATH
 
-def lograce(race:Race) -> None:
-    output_file = create_race_file(RACE_PATH, race)
-    print (f"Logged this race at {output_file}")
-    print(race)
-    print(race.results)
-    return
 
-def create_race_file(path: str, race:Race) -> str:
+def create_race_file(path: str, race) -> str:
+    from classes.Race import Race
+    """
+    Creates a race file for a given Race in a given path
+
+    Parameters
+    ----------
+    path : str
+        The root directory in which to create the race file. Usually the constant RACE_PATH.
+
+    race : Race
+        An FF6WC Raceroom bot Race object
+
+    Returns
+    -------
+    str
+        The path to the JSON file containing the race information
+    """
     if not isinstance(path, str):
         emessage = f"input path must be a str. Found type {type(path)}"
         raise Exception(emessage)
@@ -32,9 +44,26 @@ def create_race_file(path: str, race:Race) -> str:
             emessage = f"Unable to create directory {path}"
             raise Exception(emessage)
 
+    open_path = path + os.sep + "open"
+    if not os.path.exists(open_path):
+        try:
+            os.makedirs(open_path)
+        except Exception as e:
+            emessage = f"Unable to create directory {open_path}"
+            raise Exception(emessage)
+
+    closed_path = path + os.sep + "closed"
+    if not os.path.exists(closed_path):
+        try:
+            os.makedirs(closed_path)
+        except Exception as e:
+            emessage = f"Unable to create directory {closed_path}"
+            raise Exception(emessage)
+
     if not path.endswith(os.sep):
         path += os.sep
-    guild_path = path + str(race.guild.id)
+
+    guild_path = path + os.sep + "open" + os.sep + str(race.guild.id)
     guild_path = os.path.abspath(guild_path)
 
     if not os.path.exists(guild_path):
@@ -44,7 +73,17 @@ def create_race_file(path: str, race:Race) -> str:
             emessage = f"Unable to create directory {guild_path}"
             raise Exception(emessage)
 
-    filename = race.channel.name + "-" + race.opened_date.strftime("%Y-%m-%d") + ".json"
+    closed_guild_path = path + os.sep + "closed" + os.sep + str(race.guild.id)
+    closed_guild_path = os.path.abspath(closed_guild_path)
+
+    if not os.path.exists(closed_guild_path):
+        try:
+            os.makedirs(closed_guild_path)
+        except Exception as e:
+            emessage = f"Unable to create directory {closed_guild_path}"
+            raise Exception(emessage)
+
+    filename = race.channel_name + "-" + race.opened_date.strftime("%Y-%m-%d") + ".json"
     filepath = guild_path + os.sep + filename
     if os.path.exists(filepath):
         counter = 0
@@ -62,5 +101,3 @@ def create_race_file(path: str, race:Race) -> str:
         js = race.toJSON()
         f.write(js)
     return filepath
-
-

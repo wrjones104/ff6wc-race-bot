@@ -1,17 +1,20 @@
 import datetime
+from commands.closerace import closerace
 import discord
 import random
 import string
+from functions.constants import TZ, RACETYPE_ASYNC
 
 from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
-from functions.string_functions import parse_roomname
+from functions.string_functions import parse_roomname, parse_done_time, timedelta_to_str
+from functions.isRace_room import isRace_room
 
 
-async def raceinfo(guild, message, args, races):
+async def quit(guild, message, args, races) -> dict:
     """
-    Gets information about the race in this room
+    Quits the race
 
     Parameters
     ----------
@@ -39,20 +42,28 @@ async def raceinfo(guild, message, args, races):
         emessage += f"message is not a discord.message.Message - Found type {type(message)}\n"
     if not isinstance(args, dict):
         emessage += f"args is not a Python dict - Found type {type(args)}\n"
-    elif 'raceinfo' not in args.keys():
-        emessage += f"args did not contain a 'raceinfo' key\n"
+    elif 'quit' not in args.keys():
+        emessage += f"args did not contain a 'quit' key\n"
+
     if emessage != "":
         raise Exception(emessage)
 
-    cat = get(guild.categories, name="racing")
-    if message.channel.category == cat:
-        race_channel = get(guild.channels, name=message.channel.name)
-        if race_channel.name in races.keys():
-            race = races[race_channel.name]
-            msg = '`\n'
-            msg += str(race)
-            msg += '`\n'
-            await message.channel.send(msg)
+    # The channel the message is in
+    channel = message.channel
 
-    else:
-        await message.channel.send("This is not a race room!")
+    if not isRace_room(channel, races):
+        msg = "This is not a race room!"
+        await channel.send(msg)
+        return
+
+    # Is the user in this race?
+    race = races[channel.name]
+    if message.author.name not in race.members.keys():
+        msg = f"User {message.author.name} is not in this race"
+        await message.channel.send(msg)
+        return
+    racer = race.members[message.author.name]
+    race.removeRacer(racer)
+
+    msg = f"User {message.author.name} has been removed from the race"
+    await message.channel.send(msg)

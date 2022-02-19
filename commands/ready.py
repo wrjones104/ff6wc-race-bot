@@ -2,6 +2,28 @@ import discord
 from functions.isRace_room import isRace_room
 
 async def ready(guild, message, args, races) -> dict:
+    """
+    User command to mark themselves as being ready
+
+    Parameters
+    ----------
+    guild : discord.guild.Guild
+        The server we're on
+
+    message : discord.message.Message
+        A discord message containing our command
+
+    args : dict
+        A dictionary containing the command we've been given
+        ex: {'join': {'room': ('myrace-sync',)}}
+
+    races : dict
+        A dictionary containing racerooms
+
+    Returns
+    -------
+    Nothing
+    """
     channel = message.channel
 
     if not isRace_room(channel, races):
@@ -14,6 +36,11 @@ async def ready(guild, message, args, races) -> dict:
     if message.author.name not in race.members.keys():
         msg = f"User {message.author.name} is not in this race"
         await message.channel.send(msg)
+        return
+
+    if not race.isHidden and not race.members[message.author.name].hasSeed:
+        emessage = "You have not yet requested a seed. Cannot ready up."
+        await message.channel.send(emessage)
         return
 
     race.members[message.author.name].ready = True

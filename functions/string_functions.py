@@ -127,6 +127,16 @@ def parse_done_time(input:str) -> datetime.timedelta:
     which represents 1h 23m 45.6789s
 
     Unfortunately we may get any sort of crazy input.
+
+    Parameters
+    ----------
+    input : str
+        The user input, hopefully something sane
+
+    Returns
+    -------
+    datetime.timedelta
+        A measure of how long the race took
     """
     if not isinstance(input, str):
         emessage = f"Expected time input of type str. Found type {type(input)}"
@@ -163,7 +173,20 @@ def parse_done_time(input:str) -> datetime.timedelta:
     return donetime
 
 def timedelta_to_str(input:datetime.timedelta) -> str:
-    """Converts a datetime.timedelta value to a string formatted as hh:mm:ss.xx"""
+    """
+    Converts a datetime.timedelta value to a string formatted as hh:mm:ss.xx
+
+    Parameters
+    ----------
+    input : datetime.timedelta
+        A timedelta object representing how long the race took
+
+    Returns
+    -------
+    str
+        A string representation of how long the race took, formatted as hh:mm:ss.xx
+
+    """
     if not isinstance(input, datetime.timedelta):
         emessage = f"input must be datetime.timedelta. Found type {type(input)}"
         raise Exception(emessage)

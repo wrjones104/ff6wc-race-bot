@@ -10,7 +10,6 @@ from better_profanity import profanity
 from discord.utils import get
 from functions.add_racerooms import add_racerooms
 from functions.string_functions import parse_roomname
-from functions.lograce import lograce
 from functions.isRace_room import isRace_room
 
 

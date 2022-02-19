@@ -3,6 +3,7 @@ from commands.closerace import closerace
 import discord
 import random
 import string
+import dateutil.parser
 from functions.constants import TZ, RACETYPE_ASYNC
 
 from better_profanity import profanity
@@ -12,9 +13,9 @@ from functions.string_functions import parse_roomname, parse_done_time, timedelt
 from functions.isRace_room import isRace_room
 
 
-async def done(guild, message, args, races) -> dict:
+async def forfeit(guild, message, args, races) -> dict:
     """
-    Sets the user's finish time
+    Forfeits the race
 
     Parameters
     ----------
@@ -42,10 +43,6 @@ async def done(guild, message, args, races) -> dict:
         emessage += f"message is not a discord.message.Message - Found type {type(message)}\n"
     if not isinstance(args, dict):
         emessage += f"args is not a Python dict - Found type {type(args)}\n"
-    elif 'done' not in args.keys():
-        emessage += f"args did not contain a 'done' key\n"
-    elif 'time' not in args['done'].keys():
-        emessage += f"args['done'] did not contain a 'time' key\n"
 
     if emessage != "":
         raise Exception(emessage)
@@ -70,43 +67,16 @@ async def done(guild, message, args, races) -> dict:
         await message.channel.send(msg)
         return
 
-    # There are many ways the user can screw this up, so we'll have to show this message a lot
-    bad_time_message = "Use !done <time> to submit your time. Example: \n    !done 00:34:18.76\n"
+    racer = race.members[message.author.name]
+    racer.forfeit = True
+    racer.finish_date = dateutil.parser.parse('2099-12-31 23:59:59.999-05:00')
 
-    ## First, if there's some sort of weird error on our part or they didn't submit a string. If this is not
-    ## an async, we don't need to do any of this since we just care about when they typed !done
-    dt = None
-    done_str = None
-    if race.type == RACETYPE_ASYNC and not race.isHidden:
-        if len(args['done']['time']) != 1 or not isinstance(args['done']['time'][0], str):
-            await channel.send(bad_time_message)
-            return None
+    msg = f"User {message.author.name} has forfeit"
+    await message.channel.send(msg)
 
-        done_time = args['done']['time'][0]
-
-        # This function returns a datetime.timedelta and passes it to our string parser
-        try:
-            dt = parse_done_time(done_time)
-        except Exception as e:
-            await channel.send(bad_time_message)
-            return None
-
-
-    race.members[message.author.name].forfeit = False
-    race.members[message.author.name].finish_date = datetime.datetime.now(TZ)
-
-    # If this is a hidden seed or sync, the racers don't report their own time
-    if race.type == RACETYPE_ASYNC and not race.isHidden:
-        race.members[message.author.name].start_date = race.members[message.author.name].finish_date - dt
-
-    done_str = timedelta_to_str(race.members[message.author.name].time_taken)
-
-    # Finally we should have a reasonable time
-    done_msg = f"{message.author.name} has finished the race with a time of {done_str}!"
-    spoiler_channel = get(guild.channels, name=message.channel.name + "-spoilers")
-    await spoiler_channel.set_permissions(message.author, read_messages=True, send_messages=True)
-    spoil_msg = await spoiler_channel.send(done_msg)
-    await spoil_msg.pin()
+    # If it's an async, we don't need to automatically close the race
+    if race.type == RACETYPE_ASYNC:
+        return
 
     # Check to see if everyone is done
     for member in race.members.keys():
@@ -118,4 +88,3 @@ async def done(guild, message, args, races) -> dict:
     await channel.send(msg)
     await channel.send(race.getResults())
     await closerace(guild, message, args, races, "Race ended normally")
-

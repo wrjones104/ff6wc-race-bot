@@ -1,4 +1,5 @@
 import functions.constants
+from classes.Log import Log
 
 async def gethistory(message):
     """
@@ -13,6 +14,7 @@ async def gethistory(message):
     -------
     Nothing
     """
+    logger = Log()
 
     if message.content.startswith("!gethistory"):
         if message.author.id not in functions.constants.ADMINS:
@@ -34,4 +36,5 @@ async def gethistory(message):
                 chunk = "`\n"
 
         except Exception as e:
-            print ("Unable to read from %s - %s" % (functions.constants.RACE_FILE, str(e)))
+            emsg = "Unable to read from %s - %s" % (functions.constants.RACE_FILE, str(e))
+            logger.show(emsg, functions.constants.LOG_CRITICAL)

@@ -2,6 +2,29 @@ import discord
 from functions.isRace_room import isRace_room
 
 async def unready(guild, message, args, races) -> dict:
+    """
+    User command to mark themselves as not being ready
+
+    Parameters
+    ----------
+    guild : discord.guild.Guild
+        The server we're on
+
+    message : discord.message.Message
+        A discord message containing our command
+
+    args : dict
+        A dictionary containing the command we've been given
+        ex: {'join': {'room': ('myrace-sync',)}}
+
+    races : dict
+        A dictionary containing racerooms
+
+    Returns
+    -------
+    Nothing
+    """
+
     channel = message.channel
 
     if not isRace_room(channel, races):
