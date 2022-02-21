@@ -73,6 +73,8 @@ async def forfeit(guild, message, args, races) -> dict:
 
     msg = f"User {message.author.name} has forfeit"
     await message.channel.send(msg)
+    race.comments += "\n" + msg
+    race.log()
 
     # If it's an async, we don't need to automatically close the race
     if race.type == RACETYPE_ASYNC:

@@ -3,7 +3,7 @@ from commands.closerace import closerace
 import discord
 import random
 import string
-from functions.constants import TZ, RACETYPE_ASYNC
+from functions.constants import TZ, RACETYPE_ASYNC, LOG_TRIVIAL
 
 from better_profanity import profanity
 from discord.utils import get
@@ -70,6 +70,11 @@ async def done(guild, message, args, races) -> dict:
         await message.channel.send(msg)
         return
 
+    if race.members[message.author.name].finish_date:
+        msg = f"User {message.author.name} has already finished the race"
+        await message.channel.send(msg)
+        return
+
     # There are many ways the user can screw this up, so we'll have to show this message a lot
     bad_time_message = "Use !done <time> to submit your time. Example: \n    !done 00:34:18.76\n"
 
@@ -94,6 +99,7 @@ async def done(guild, message, args, races) -> dict:
 
     race.members[message.author.name].forfeit = False
     race.members[message.author.name].finish_date = datetime.datetime.now(TZ)
+
 
     # If this is a hidden seed or sync, the racers don't report their own time
     if race.type == RACETYPE_ASYNC and not race.isHidden:

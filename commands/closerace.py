@@ -40,25 +40,33 @@ async def closerace(guild, message, args, races, msg = None):
     Nothing
     """
 
-    # TODO: Add in gating to prevent people from closing the room while folks are running - WhoDat42 - 2022-01-26
-    cat = get(guild.categories, name="racing")
-    if message.channel.category == cat:
-        race_channel = get(guild.channels, name=message.channel.name)
-        spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
-        await message.channel.send(f"This room and its spoiler room will be closed in {functions.constants.RACE_ROOM_CLOSE_TIME} seconds!")
-        time.sleep(functions.constants.RACE_ROOM_CLOSE_TIME)
-
-        if race_channel:
-            await race_channel.delete()
-        if spoiler_channel:
-            await spoiler_channel.delete()
-
-        if not msg:
-            msg = f"Closed by {message.author}"
-        if race_channel.name in races.keys():
-            races[race_channel.name].comments = msg
-            races[race_channel.name].close()
-
-            del races[race_channel.name]
-    else:
+    if not message.channel.name in races.keys():
         await message.channel.send("This is not a race room!")
+        return
+
+    msg = "The follwing runners have not yet finished/forfeited:\n"
+    stillrunning = False
+    channel_name = message.channel.name
+    for runner in races[channel_name].members:
+        if not races[channel_name].members[runner].forfeit and not races[channel_name].members[runner].finish_date:
+            stillrunning = True
+            msg += f"\t{runner}\n"
+
+    if stillrunning:
+        await message.channel.send(msg)
+        return
+
+    race_channel = get(guild.channels, name=message.channel.name)
+    spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
+    await message.channel.send(f"This room and its spoiler room will be closed in {functions.constants.RACE_ROOM_CLOSE_TIME} seconds!")
+    time.sleep(functions.constants.RACE_ROOM_CLOSE_TIME)
+
+    if race_channel:
+        await race_channel.delete()
+    if spoiler_channel:
+        await spoiler_channel.delete()
+
+    msg = f"\nClosed by {message.author}"
+    races[channel_name].comments += msg
+    races[channel_name].close()
+    del races[channel_name]

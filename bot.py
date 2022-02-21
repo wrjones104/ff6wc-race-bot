@@ -1,4 +1,4 @@
-VERSION = "2022-02-18"
+VERSION = "2022-02-21"
 
 import datetime
 from http import server
@@ -95,6 +95,12 @@ The bot currently supports the following commands:
 
     !ready / !unready
         Ready or unready yourself for a race
+
+    !quit
+        Quits a race
+
+    !forfeit / !ff
+        Forfeits from a race
 
     !entrants
         Lists the entrants of a race
@@ -234,6 +240,10 @@ async def on_message(message):
     # Forfeit
     if message.content.startswith("!ff") or message.content.startswith("!forfeit"):
         await forfeit(guild, message, commands_values, races)
+
+    # Close the race
+    if message.content.startswith("!closerace"):
+        await closerace(guild, message, commands_values, races)
 
     # Admin only: This message instantly closes the race and spoiler rooms
     if message.content.startswith("!killrace"):

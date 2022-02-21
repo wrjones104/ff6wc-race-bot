@@ -138,7 +138,6 @@ class Race:
 
     @flags.setter
     def flags(self, input:str) -> None:
-        # TODO - Somehow make sure the flags are valid
         if input is None:
             return
         if not isinstance(input, str):
@@ -149,12 +148,23 @@ class Race:
 
     @property
     def admins(self) -> set:
+        #Set of discord IDs
         return self._admins
 
     @admins.setter
-    def admins(self, input) -> None:
-        #TODO - Check against channel admins - WD42 2022-01-31
-        pass
+    def admins(self, input:int) -> None:
+        if not isinstance(input, (list, tuple, int)):
+            emessage = f"input should be an int or set/list/tuple of ints representing a discord ID. Found type {type(input)}"
+            raise Exception(emessage)
+        if isinstance(input, int):
+            self._admins = set()
+            self._admins.add(input)
+            return
+        for item in input:
+            if not isinstance(item, int):
+                emessage = f"input should be an int or set/list/tuple of ints representing a discord ID. Found type {type(item)}"
+                raise Exception(emessage)
+        self._admins = set(input)
 
     @property
     def type(self) -> str:

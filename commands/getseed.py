@@ -105,12 +105,12 @@ async def getseed(guild, message, args, races) -> False:
         logger.show(msg)
         race.comments += msg + "\n"
 
-    smessage = f"Here's your Worlds Collide version {version} seed:\n"
+    smessage = f"Here's your Worlds Collide version {version} seed for {race.channel.name}:\n"
     smessage += f"URL: {url}\n"
     smessage += f"Hash: {hash}\n"
     smessage += "\n"
     author = message.author
-    race.log()
+    race.log(functions.constants.LOG_TRIVIAL)
     await author.send(smessage)
 
 

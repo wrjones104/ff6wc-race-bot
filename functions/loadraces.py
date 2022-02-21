@@ -91,7 +91,7 @@ def json_to_race(client, input: str) -> Race:
         raise Exception(emessage)
 
     try:
-        js = json.loads(input)
+        js = json.loads(input, strict=False)
     except Exception as e:
         emessage = f"Unable to load input json:\n{input}\n\n{str(e)}"
         raise Exception(emessage)
@@ -177,7 +177,7 @@ def json_to_racer(client, input: str) -> RaceRunner:
     input = input.replace("\"null\"", "null")
 
     try:
-        js = json.loads(input)
+        js = json.loads(input, strict=False)
     except Exception as e:
         emessage = f"Unable to load input json:\n{input}\n\n{str(e)}"
         raise Exception(emessage)
