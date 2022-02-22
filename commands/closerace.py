@@ -58,6 +58,12 @@ async def closerace(guild, message, args, races, msg = None):
 
     race_channel = get(guild.channels, name=message.channel.name)
     spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))
+
+
+    msg = "This race is over! Here are the results:\n"
+    await message.channel.send(msg)
+    await message.channel.send(races[channel_name].getResults())
+
     await message.channel.send(f"This room and its spoiler room will be closed in {functions.constants.RACE_ROOM_CLOSE_TIME} seconds!")
     time.sleep(functions.constants.RACE_ROOM_CLOSE_TIME)
 

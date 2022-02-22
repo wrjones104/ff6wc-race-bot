@@ -1,3 +1,4 @@
+from asyncio import constants
 import datetime
 from commands.closerace import closerace
 import discord
@@ -106,6 +107,7 @@ async def done(guild, message, args, races) -> dict:
         race.members[message.author.name].start_date = race.members[message.author.name].finish_date - dt
 
     done_str = timedelta_to_str(race.members[message.author.name].time_taken)
+    race.log(LOG_TRIVIAL)
 
     # Finally we should have a reasonable time
     done_msg = f"{message.author.name} has finished the race with a time of {done_str}!"
@@ -113,6 +115,10 @@ async def done(guild, message, args, races) -> dict:
     await spoiler_channel.set_permissions(message.author, read_messages=True, send_messages=True)
     spoil_msg = await spoiler_channel.send(done_msg)
     await spoil_msg.pin()
+
+    # If it's an async, don't close the room when the last person is done
+    if race.type == RACETYPE_ASYNC:
+        return
 
     # Check to see if everyone is done
     for member in race.members.keys():

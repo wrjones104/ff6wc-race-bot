@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import shutil
+import dateutil.parser
 
 from functions.constants import TZ
 from classes.Log import Log
@@ -394,7 +395,14 @@ class Race:
         output = "`"
         times = {}
         for member in self.members.keys():
-            times[self.members[member].time_taken] = member
+            taken = None
+            if not self.members[member].time_taken:
+                # TODO: May need to add 'if forfeit' here WD42
+                taken = dateutil.parser.parse('2099-12-31 23:59:59.999-05:00') - datetime.datetime.now(TZ)
+            else:
+                taken = self.members[member].time_taken
+            times[taken] = member
+
         counter = 1
         for time in sorted(times.keys()):
             output += f"{counter} - {times[time]} -- {time}\n"

@@ -1,4 +1,4 @@
-VERSION = "2022-02-21"
+VERSION = "2022-02-22"
 
 import datetime
 from http import server

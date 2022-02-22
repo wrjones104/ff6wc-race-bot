@@ -56,13 +56,24 @@ async def quit(guild, message, args, races) -> dict:
         await channel.send(msg)
         return
 
+    # If it's an async, don't close the room when the last person is done
+    if race.type == RACETYPE_ASYNC:
+        return
+
     # Is the user in this race?
     race = races[channel.name]
     if message.author.name not in race.members.keys():
         msg = f"User {message.author.name} is not in this race"
         await message.channel.send(msg)
         return
+
+
     racer = race.members[message.author.name]
+    if racer.race_start_date:
+        msg = f"User {message.author.name}, you have started the race, you must forfeit"
+        await message.channel.send(msg)
+        return
+
     race.removeRacer(racer)
 
     msg = f"User {message.author.name} has been removed from the race"

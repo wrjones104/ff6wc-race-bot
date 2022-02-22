@@ -103,7 +103,8 @@ class RaceRunner:
             emessage = f"input must be a bool. Found type {type(input)}"
             raise Exception(emessage)
         self._forfeit = input
-        self.race.log(functions.constants.LOG_TRIVIAL)
+        if self.race:
+            self.race.log(functions.constants.LOG_TRIVIAL)
 
     @property
     def time_taken(self) -> datetime.timedelta:
