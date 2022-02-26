@@ -44,7 +44,7 @@ async def raceinfo(guild, message, args, races):
     if emessage != "":
         raise Exception(emessage)
 
-    cat = get(guild.categories, name="racing")
+    cat = get(guild.categories, name="Racing")
     if message.channel.category == cat:
         race_channel = get(guild.channels, name=message.channel.name)
         if race_channel.name in races.keys():

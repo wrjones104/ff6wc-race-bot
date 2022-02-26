@@ -43,7 +43,7 @@ async def killrace(guild, message, args, races):
         if message.author.id not in functions.constants.ADMINS:
             return
 
-    cat = get(guild.categories, name="racing")
+    cat = get(guild.categories, name="Racing")
     if message.channel.category == cat:
         race_channel = get(guild.channels, name=message.channel.name)
         spoiler_channel = get(guild.channels, name=''.join([str(race_channel), "-spoilers"]))

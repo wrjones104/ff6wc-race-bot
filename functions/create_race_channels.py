@@ -14,7 +14,7 @@ async def create_race_channels(guild, creator, name, logger):
         guild.me: discord.PermissionOverwrite(read_messages=True)
     }
 
-    cat = get(guild.categories, name="racing")
+    cat = get(guild.categories, name="Racing")
 
     if not name in [r.name for r in guild.channels]:
         channel = await guild.create_text_channel(name, category=cat, overwrites=race_room_overwrites)

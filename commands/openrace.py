@@ -48,7 +48,7 @@ async def openrace(guild, message, args) -> dict:
         raise Exception(emessage)
 
     # This next part just pulls the category name for channel creation.
-    cat = get(guild.categories, name="racing")
+    cat = get(guild.categories, name="Racing")
 
     # The channel the message is in
     channel = message.channel
