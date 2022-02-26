@@ -83,7 +83,7 @@ async def done(guild, message, args, races) -> dict:
     ## an async, we don't need to do any of this since we just care about when they typed !done
     dt = None
     done_str = None
-    if race.type == RACETYPE_ASYNC and not race.isHidden:
+    if race.type == RACETYPE_ASYNC:
         if len(args['done']['time']) != 1 or not isinstance(args['done']['time'][0], str):
             await channel.send(bad_time_message)
             return None
@@ -103,7 +103,7 @@ async def done(guild, message, args, races) -> dict:
 
 
     # If this is a hidden seed or sync, the racers don't report their own time
-    if race.type == RACETYPE_ASYNC and not race.isHidden:
+    if race.type == RACETYPE_ASYNC:
         race.members[message.author.name].start_date = race.members[message.author.name].finish_date - dt
 
     done_str = timedelta_to_str(race.members[message.author.name].time_taken)
@@ -115,6 +115,10 @@ async def done(guild, message, args, races) -> dict:
     await spoiler_channel.set_permissions(message.author, read_messages=True, send_messages=True)
     spoil_msg = await spoiler_channel.send(done_msg)
     await spoil_msg.pin()
+
+    # Delete the message if it's a hidden race
+    if race.isHidden:
+        await message.delete()
 
     # If it's an async, don't close the room when the last person is done
     if race.type == RACETYPE_ASYNC:

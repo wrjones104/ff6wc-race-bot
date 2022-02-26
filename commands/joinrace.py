@@ -85,4 +85,5 @@ async def joinrace(guild, message, args, races):
     join_msg = f"{message.author.name} has joined the race!"
     await join_channel.set_permissions(message.author, read_messages=True, send_messages=True)
     await join_channel.send(join_msg)
+    await message.delete()
 

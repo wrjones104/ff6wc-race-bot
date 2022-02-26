@@ -104,7 +104,7 @@ async def startrace(guild, message, args, races):
         msg += "\nThe race has started. You may request the seed with `!getseed`\n"
         msg += "Your timer will start once you have been DMed.\n"
 
-    if race.type == RACETYPE_ASYNC and not race.isHidden:
+    if race.type == RACETYPE_ASYNC:
         msg += "Use the following command to enter your finish time: `!done hh:mm:ss.xxx`"
     else:
         msg += "To finish the race and record your time, type `!done` with no arguments."

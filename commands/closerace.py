@@ -75,4 +75,18 @@ async def closerace(guild, message, args, races, msg = None):
     msg = f"\nClosed by {message.author}"
     races[channel_name].comments += msg
     races[channel_name].close()
+
+    # DM everyone the results
+    results = f"Race {channel_name}:\n" + races[channel_name].getResults()
+    for member in races[channel_name].members.keys():
+        runner = races[channel_name].members[member].member
+        await runner.send(results)
+
+    for admin_id in races[channel_name].admins:
+        admin = await guild.query_members(user_ids=[admin_id])
+        admin = admin[0]
+        await admin.send(results)
+
+
+
     del races[channel_name]
